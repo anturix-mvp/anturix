@@ -338,6 +338,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "litesvm",
+ "serde_json",
  "sha2 0.10.9",
  "solana-sdk",
 ]

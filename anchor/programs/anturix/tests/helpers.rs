@@ -396,7 +396,7 @@ pub fn ix_close_poker_pool(creator: &Pubkey, pool: &Pubkey, player_keys: &[Pubke
 
 pub fn load_admin_keypair() -> Keypair {
     let kp_bytes = std::fs::read(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/admin-keypair.json")
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/admin-keypair.json")
     ).unwrap();
     let bytes: Vec<u8> = serde_json::from_slice(&kp_bytes).unwrap();
     Keypair::from_bytes(&bytes).unwrap()

@@ -1,3 +1,4 @@
+#[allow(dead_code, deprecated)]
 mod helpers;
 
 use helpers::*;
@@ -180,7 +181,7 @@ fn test_cancel_duel_by_creator() {
 
 #[test]
 fn test_force_cancel_pending_duel() {
-    let (mut svm, admin, alice, bob) = setup_two_players();
+    let (mut svm, admin, alice, _bob) = setup_two_players();
     let duel = create_duel(&mut svm, &alice);
 
     let alice_bal_before = get_balance(&svm, &alice.pubkey());
@@ -363,7 +364,7 @@ fn test_resolve_pending_duel_fails() {
 
 #[test]
 fn test_non_admin_cannot_resolve() {
-    let (mut svm, admin, alice, bob) = setup_two_players();
+    let (mut svm, _admin, alice, bob) = setup_two_players();
     let duel = create_duel(&mut svm, &alice);
     send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel)], &bob, &[&bob]).unwrap();
 

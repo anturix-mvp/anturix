@@ -1,3 +1,4 @@
+#[allow(dead_code, deprecated)]
 mod helpers;
 
 use helpers::*;

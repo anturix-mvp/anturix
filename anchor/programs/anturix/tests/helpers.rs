@@ -3,7 +3,6 @@ pub use litesvm::LiteSVM;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signer},
-    system_program,
     transaction::Transaction,
     instruction::{Instruction, AccountMeta},
 };
@@ -86,7 +85,7 @@ pub fn poker_escrow_pda(poker_pool: &Pubkey) -> (Pubkey, u8) {
 pub fn setup() -> LiteSVM {
     let mut svm = LiteSVM::new();
     let program_bytes = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/deploy/anturix.so"));
-    svm.add_program(prog_id(), program_bytes);
+    let _ = svm.add_program(prog_id(), program_bytes);
     svm
 }
 
@@ -129,7 +128,8 @@ fn ap(pk: &Pubkey) -> AnchorPubkey {
 }
 
 fn sys_id() -> AnchorPubkey {
-    ap(&system_program::id())
+    // solana system program well-known ID
+    AnchorPubkey::new_from_array([0u8; 32])
 }
 
 // ── Instruction builders ──
@@ -399,7 +399,7 @@ pub fn load_admin_keypair() -> Keypair {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/admin-keypair.json")
     ).unwrap();
     let bytes: Vec<u8> = serde_json::from_slice(&kp_bytes).unwrap();
-    Keypair::from_bytes(&bytes).unwrap()
+    Keypair::try_from(bytes.as_slice()).unwrap()
 }
 
 // ── Hash helper for expert lock ──

@@ -1,3 +1,4 @@
+#[allow(dead_code, deprecated)]
 mod helpers;
 
 use helpers::*;
@@ -13,7 +14,7 @@ const EVENT_ID: &str = "nba-finals-2026-g1";
 const PREDICTION: &str = "Lakers win by 10+";
 const SALT: [u8; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 const STAKE: u64 = 100_000_000;
-const DUEL_EVENT: &str = "nba-lakers-celtics-2026";
+
 
 // ── Setup: create an expert with 3+ wins ──
 

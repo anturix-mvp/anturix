@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-pub const ADMIN_PUBKEY: Pubkey = pubkey!("6nwrr5Yj4KuevxokvBmtLKvLetJgcVTrgLnprVmw4h4x"); // TODO: set before deploy
+pub const ADMIN_PUBKEY: Pubkey = pubkey!("8RAViABqHQkdSesxZqqFcWnEYnw5baVN2AQB2Z2CmQgX");
 
 pub const MAX_EVENT_ID_LEN: usize = 64;
 pub const MAX_PREDICTION_LEN: usize = 280;

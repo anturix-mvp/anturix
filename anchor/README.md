@@ -1,76 +1,109 @@
-# Anchor Vault Program
+# Anturix -- Solana Smart Contracts
 
-This template includes a simple SOL vault program built with [Anchor](https://www.anchor-lang.com/).
+On-chain program for Anturix, a gamified SocialFi prediction platform on Solana. Built with Anchor v1.0.0.
 
-## Pre-deployed Program
+## Program ID
 
-The vault program is deployed on **devnet** at:
+Deployed on **devnet**:
 
 ```
-F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB
+HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9
 ```
 
-You can interact with it immediately by connecting your wallet to devnet.
+## Features
 
-## Deploying Your Own Program
+**Smart Banter (1v1 Duels)** -- Stake SOL, predict sports outcomes, loser gets a clown PFP for 24h.
 
-To deploy your own version of the program:
+**Expert Lock (Prediction Paywall)** -- Experts sell predictions via commit-reveal. Buyers pay a flat fee (direct P2P, no escrow). Gate: 3+ banter wins required.
 
-### 1. Generate a new program keypair
+**Poker Pool (Lobby)** -- 6-player Omaha lobby with buy-in escrow. MVP refunds all on close.
+
+## Instructions (16 total)
+
+| Feature | Instructions |
+|---------|-------------|
+| Shared | `init_user_profile` |
+| Smart Banter | `create_duel`, `accept_duel`, `resolve_duel`, `claim_prize`, `cancel_duel`, `expire_cancel_duel`, `force_cancel_duel` |
+| Expert Lock | `create_expert_lock`, `buy_expert_lock`, `reveal_expert_lock`, `resolve_expert_lock` |
+| Poker Pool | `create_poker_pool`, `join_poker_pool`, `leave_poker_pool`, `close_poker_pool` |
+
+## Account Structs
+
+| Account | Size | PDA Seeds |
+|---------|------|-----------|
+| UserProfile | 81B | `["profile", owner]` |
+| DuelState | 192B | `["duel", creator, duel_count_le_bytes]` |
+| ExpertLockState | 160B | `["expert_lock", expert, event_id_bytes]` |
+| PokerPool | 244B | `["poker", creator, pool_count_le_bytes]` |
+
+Escrow PDAs are zero-data system-owned accounts (lamport bags):
+- Duel escrow: `["escrow", duel_state]`
+- Poker escrow: `["poker_escrow", poker_pool]`
+
+## Building
 
 ```bash
-cd anchor
-solana-keygen new -o target/deploy/vault-keypair.json
-```
-
-### 2. Get the new program ID
-
-```bash
-solana address -k target/deploy/vault-keypair.json
-```
-
-### 3. Update the program ID
-
-Update the program ID in these files:
-
-- `anchor/Anchor.toml` - Update `vault = "..."` under `[programs.devnet]`
-- `anchor/programs/vault/src/lib.rs` - Update `declare_id!("...")`
-
-### 4. Build and deploy
-
-```bash
-# Build the program
 anchor build
-
-# Get devnet SOL for deployment (~2 SOL needed)
-solana airdrop 2 --url devnet
-
-# Deploy to devnet
-anchor deploy --provider.cluster devnet
 ```
-
-### 5. Regenerate the TypeScript client
-
-```bash
-cd ..
-npm run codama:js
-```
-
-This updates the generated client code in `app/generated/vault/` with your new program ID.
-
-## Program Overview
-
-The vault program allows users to:
-
-- **Deposit**: Send SOL to a personal vault PDA (Program Derived Address)
-- **Withdraw**: Retrieve all SOL from your vault
-
-Each user gets their own vault derived from their wallet address.
 
 ## Testing
 
-Run the Anchor tests:
+50 LiteSVM tests across 5 test suites:
 
 ```bash
-anchor test --skip-deploy
+# Run all tests
+cargo test --package anturix
+
+# Run individual suites
+cargo test --package anturix --test test_init_profile
+cargo test --package anturix --test test_smart_banter
+cargo test --package anturix --test test_expert_lock
+cargo test --package anturix --test test_poker_pool
+cargo test --package anturix --test test_integration
 ```
+
+Tests require an admin keypair at `programs/anturix/tests/admin-keypair.json`. Generate one:
+
+```bash
+solana-keygen new --no-bip39-passphrase -o programs/anturix/tests/admin-keypair.json
+```
+
+Then update `ADMIN_PUBKEY` in `programs/anturix/src/constants.rs` to match:
+
+```bash
+solana-keygen pubkey programs/anturix/tests/admin-keypair.json
+```
+
+## Devnet Smoke Test
+
+```bash
+cd .. && npx tsx scripts/devnet-smoke-test.ts
+```
+
+Runs the full duel lifecycle on devnet: fund wallets, init profiles, create duel, accept, resolve, claim.
+
+## Deploying
+
+```bash
+anchor deploy
+```
+
+After deploying, regenerate the TypeScript client:
+
+```bash
+cd .. && npm run codama:js
+```
+
+This updates `app/generated/anturix/` with typed instruction builders, account decoders, and PDA helpers.
+
+## Architecture
+
+Full architecture doc: `~/Brain/Projects/anturix/contract-architecture.md`
+
+Key design decisions:
+- Admin keypair for resolution (oracle post-hackathon)
+- Escrow = system-owned PDA lamport bag, drained via invoke_signed
+- Commit-reveal with secret salt for expert lock (SHA256 via sha2 crate)
+- Clown duration fixed at 24h
+- Prediction text stored off-chain (Prisma), only hash on-chain
+- Account structs aggressively trimmed for rent

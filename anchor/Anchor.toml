@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-anturix = "6nwrr5Yj4KuevxokvBmtLKvLetJgcVTrgLnprVmw4h4x"
+anturix = "HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9"
 
 [provider]
 cluster = "devnet"

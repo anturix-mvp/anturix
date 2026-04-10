@@ -46,3 +46,4 @@ next-env.d.ts
 
 # solana local validator
 test-ledger/
+anchor/programs/anturix/tests/admin-keypair.json

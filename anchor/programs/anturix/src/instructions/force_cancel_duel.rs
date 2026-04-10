@@ -91,12 +91,13 @@ pub struct ForceCancelDuel<'info> {
     )]
     pub creator: SystemAccount<'info>,
 
-    /// CHECK: opponent — validated against duel_state
+    /// CHECK: opponent -- validated against duel_state. UncheckedAccount because
+    /// Pending duels have opponent = Pubkey::default() which is not system-owned.
     #[account(
         mut,
         constraint = opponent.key() == duel_state.opponent @ AnturixError::InvalidDuelStatus,
     )]
-    pub opponent: SystemAccount<'info>,
+    pub opponent: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub duel_state: Account<'info, DuelState>,

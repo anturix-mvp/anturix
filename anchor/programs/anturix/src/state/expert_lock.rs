@@ -16,7 +16,7 @@ impl ExpertLockState {
     pub const SIZE: usize = 8 + 32 + (4 + 64) + 32 + 8 + 1 + 2 + 8 + 1; // 160
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum ExpertLockStatus {
     Active,
     Revealed,

@@ -17,7 +17,7 @@ impl DuelState {
     pub const SIZE: usize = 8 + 32 + 32 + (4 + 64) + 8 + 1 + (1 + 32) + 8 + 1 + 1; // 192
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum DuelStatus {
     Pending,
     Active,

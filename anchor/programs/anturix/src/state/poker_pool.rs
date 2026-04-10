@@ -15,7 +15,7 @@ impl PokerPool {
     pub const SIZE: usize = 8 + 32 + 8 + (32 * 6) + 1 + 1 + 1 + 1; // 244
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum PoolStatus {
     Open,
     Full,

@@ -8,17 +8,19 @@ import { useBalance } from "./lib/hooks/use-balance";
 import { lamportsToSolString } from "./lib/lamports";
 import { useSolanaClient } from "./lib/solana-client-context";
 import { ellipsify } from "./lib/explorer";
-import { VaultCard } from "./components/vault-card";
+// import { VaultCard } from "./components/vault-card";
 import { GridBackground } from "./components/grid-background";
 import { ThemeToggle } from "./components/theme-toggle";
 import { ClusterSelect } from "./components/cluster-select";
 import { WalletButton } from "./components/wallet-button";
 import { useCluster } from "./components/cluster-context";
+import { useAnturixWeb3, ACTIVIDADES_ANTURIX } from "./lib/hooks/use-anturix-web3";
 
 export default function Home() {
   const { wallet, status } = useWallet();
   const { cluster, getExplorerUrl } = useCluster();
   const client = useSolanaClient();
+  const { xpLocal, nivelLocal, duelosGanados, participarEnActividad, txStatus, isSending, perfilData, initPerfil } = useAnturixWeb3();
 
   const address = wallet?.account.address;
   const balance = useBalance(address);
@@ -261,8 +263,67 @@ export default function Home() {
               </section>
             )}
 
-            {/* Vault Program Section */}
-            <VaultCard />
+            {/* Seccion de estadisticas simuladas de Anturix */}
+            {status === "connected" && (
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="rounded-2xl border border-border-low bg-card p-6 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted">Nivel de Experto</p>
+                  <p className="mt-2 text-3xl font-black">{nivelLocal}</p>
+                  <p className="text-sm text-muted">XP Total: {xpLocal}</p>
+                </div>
+                <div className="rounded-2xl border border-border-low bg-card p-6 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted">Duelos Ganados</p>
+                  <p className="mt-2 text-3xl font-black text-primary">{duelosGanados}</p>
+                  <p className="text-sm text-muted">{perfilData ? "Perfil sincronizado" : "Sesion local"}</p>
+                </div>
+                <div className="rounded-2xl border border-border-low bg-card p-6 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted">Estado de Transaccion</p>
+                  <p className="mt-2 text-sm font-medium truncate">{txStatus || "Esperando accion..."}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Inicializacion de perfil si no existe en la blockchain */}
+            {status === "connected" && !perfilData && (
+              <section className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center">
+                <h3 className="text-lg font-bold">Configura tu Perfil Anturix</h3>
+                <p className="mt-1 text-sm text-muted">Aun no tienes un perfil registrado en Devnet para este wallet.</p>
+                <button
+                  onClick={initPerfil}
+                  disabled={isSending}
+                  className="mt-6 rounded-lg bg-primary px-8 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSending ? "Inicializando..." : "Crear Perfil en Blockchain"}
+                </button>
+              </section>
+            )}
+
+            {/* Lista de actividades disponibles para simulacion */}
+            {status === "connected" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold">Actividades Disponibles</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {ACTIVIDADES_ANTURIX.map((act) => (
+                    <button
+                      key={act.id}
+                      disabled={isSending}
+                      onClick={() => participarEnActividad(act)}
+                      className="flex flex-col gap-4 rounded-2xl border border-border-low bg-card p-6 transition hover:scale-[1.02] hover:shadow-lg disabled:opacity-50"
+                    >
+                      <div className={`h-2 w-12 rounded-full ${act.color}`} />
+                      <div className="text-left">
+                        <p className="text-xs font-bold uppercase text-muted">{act.tipo}</p>
+                        <p className="font-bold">{act.nombre}</p>
+                        <p className="mt-2 text-sm font-medium text-primary">Stake: {act.stakeSol} SOL</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vault Program Section se mantiene comentado por errores */}
+            {/* <VaultCard /> */}
           </div>
         </main>
       </div>

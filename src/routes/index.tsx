@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { DuelCard } from '@/components/feed/DuelCard';
 import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
@@ -24,6 +24,24 @@ const tabs = ['Feed', 'My Bets', 'Discover'] as const;
 
 function FeedPage() {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Feed');
+  const [animating, setAnimating] = useState(false);
+  const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleTabChange = (tab: typeof tabs[number]) => {
+    if (tab === activeTab) return;
+    setAnimating(true);
+    // After fade out, switch content and fade in
+    timeoutRef.current = setTimeout(() => {
+      setActiveTab(tab);
+      setDisplayTab(tab);
+      setAnimating(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
 
   const activeFeed = activeTab === 'My Bets' ? myBetsFeed : activeTab === 'Discover' ? discoverFeed : mockFeed;
 
@@ -34,7 +52,7 @@ function FeedPage() {
         {tabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
               activeTab === tab
                 ? 'text-primary'
@@ -51,7 +69,7 @@ function FeedPage() {
 
       {/* Feed with pull-to-refresh */}
       <PullToRefresh>
-        <div className="space-y-4">
+        <div className={`space-y-4 transition-all duration-200 ${animating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
           {activeFeed.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p className="text-lg font-medium">No hay items aquí todavía</p>

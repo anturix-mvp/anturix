@@ -1,9 +1,13 @@
-import { Bell, Plus, Search, ChevronDown } from 'lucide-react';
+import { Bell, Plus, Search } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
+import { WalletDropdown } from '@/components/wallet/WalletDropdown';
+import { useWalletContext } from '@/contexts/WalletContext';
 import atxLogo from '@/assets/atx-logo.jpg';
 
 export function Navbar() {
+  const { connected } = useWalletContext();
+
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-3">
       {/* Logo (mobile) */}
@@ -36,18 +40,14 @@ export function Navbar() {
           <span>Antaler</span>
         </Button>
 
-        {/* Balance chip */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195]" />
-          <span className="text-sm font-heading font-semibold text-foreground">42.5</span>
-          <span className="text-xs text-muted-foreground">SOL</span>
-        </div>
+        {/* Wallet dropdown / connect */}
+        <WalletDropdown />
 
-        {/* Avatar */}
-        <button className="flex items-center gap-1.5">
+        {/* Avatar with status indicator */}
+        <div className="relative">
           <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=CryptoAlpha" alt="avatar" className="w-8 h-8 rounded-full border-2 border-primary" />
-          <ChevronDown className="w-3 h-3 text-muted-foreground hidden sm:block" />
-        </button>
+          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${connected ? 'bg-success' : 'bg-destructive'}`} />
+        </div>
       </div>
     </header>
   );

@@ -1,9 +1,17 @@
 import { motion } from 'framer-motion';
 import { Gem, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useWalletContext } from '@/contexts/WalletContext';
 import type { PokerPool } from '@/types/anturix';
 
 export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: number }) {
+  const { requireWallet } = useWalletContext();
+
+  const handleJoin = () => {
+    if (!requireWallet('join this pool')) return;
+    // proceed with join logic
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -13,7 +21,6 @@ export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: nu
       style={{ boxShadow: '0 0 20px oklch(0.7 0.22 340 / 0.15)' }}
     >
       <div className="p-4 space-y-3 cyber-corners-bottom">
-        {/* Title */}
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-sm font-bold text-foreground">{pool.title}</h3>
           <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-[10px] font-semibold">
@@ -21,7 +28,6 @@ export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: nu
           </span>
         </div>
 
-        {/* Seats */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Seats: {pool.seats.occupied} / {pool.seats.total} occupied</p>
@@ -46,8 +52,7 @@ export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: nu
           </div>
         </div>
 
-        {/* CTA */}
-        <Button variant="magenta" className="w-full gap-2">
+        <Button variant="magenta" className="w-full gap-2" onClick={handleJoin}>
           <Plus className="w-4 h-4" />
           TAKE SEAT ({pool.buyIn} SOL)
         </Button>

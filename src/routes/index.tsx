@@ -43,6 +43,8 @@ function FeedPage() {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
+  const activeFeed = activeTab === 'My Bets' ? myBetsFeed : activeTab === 'Discover' ? discoverFeed : mockFeed;
+
   const tabCounts: Record<typeof tabs[number], number> = {
     'Feed': mockFeed.length,
     'My Bets': myBetsFeed.length,

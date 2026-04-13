@@ -4,12 +4,12 @@ import { useState } from 'react';
 import atxLogo from '@/assets/atx-logo.jpg';
 const navItems = [
   { to: '/', icon: Home, label: 'Home' },
-  { to: '/', icon: Rss, label: 'Feed' },
-  { to: '/', icon: Search, label: 'Search' },
-  { to: '/', icon: Users, label: 'Friends' },
+  { to: '/feed', icon: Rss, label: 'Feed' },
+  { to: '/search', icon: Search, label: 'Search' },
+  { to: '/friends', icon: Users, label: 'Friends' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
-  { to: '/', icon: Calendar, label: 'Calendar' },
-  { to: '/', icon: Settings, label: 'Settings' },
+  { to: '/calendar', icon: Calendar, label: 'Calendar' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ] as const;
 
 export function Sidebar() {

@@ -7,6 +7,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import { CreateBetModal } from '@/components/bet/CreateBetModal';
 
 const tabs = [
   { to: '/', icon: Home, label: 'Home' },
@@ -19,6 +20,7 @@ const tabs = [
 export function BottomTabBar() {
   const location = useLocation();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [betModalOpen, setBetModalOpen] = useState(false);
 
   return (
     <>
@@ -52,7 +54,7 @@ export function BottomTabBar() {
           </DrawerHeader>
           <div className="px-4 pb-6 space-y-3">
             <button
-              onClick={() => setSheetOpen(false)}
+              onClick={() => { setSheetOpen(false); setBetModalOpen(true); }}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-cyan">
@@ -78,6 +80,8 @@ export function BottomTabBar() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <CreateBetModal open={betModalOpen} onClose={() => setBetModalOpen(false)} />
     </>
   );
 }

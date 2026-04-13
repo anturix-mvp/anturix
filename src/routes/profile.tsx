@@ -4,6 +4,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { currentUser, mockAchievements } from '@/data/mockData';
 import { Trophy, TrendingUp, Coins, Star, Swords, Shield } from 'lucide-react';
 import { useState, useRef } from 'react';
+import { RankBadge, XPProgressBar, StreakBadge } from '@/components/gamification/RankSystem';
+import { showAchievementToast } from '@/components/gamification/AchievementToast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export const Route = createFileRoute('/profile')({
   head: () => ({
@@ -18,6 +21,14 @@ export const Route = createFileRoute('/profile')({
 });
 
 const profileTabs = ['Active Bets', 'History', 'Achievements', 'Alpha Locks'] as const;
+
+const statTooltips: Record<string, string> = {
+  'Total Wins': 'Number of duels and predictions you have won across all game modes',
+  'Win Rate': 'Percentage of total bets you have won. Higher rates unlock better ranks',
+  'SOL Earned': 'Total SOL earned from winning duels, predictions and pool payouts',
+  'Reputation': 'Experience points earned from activity. Determines your rank progression',
+  'Active Duels': 'Duels you are currently participating in that haven\'t been resolved yet',
+};
 
 const stats = [
   { icon: Trophy, label: 'Total Wins', value: currentUser.wins, color: 'text-gold' },
@@ -47,37 +58,49 @@ function ProfilePage() {
 
       {/* Avatar & Info */}
       <div className="relative -mt-24 px-4 mb-6">
-        <img
-          src={currentUser.avatar}
-          alt={currentUser.username}
-          className="w-24 h-24 rounded-full border-4 border-gold shadow-[0_0_20px_oklch(0.82_0.16_85/0.4)]"
-        />
-        <div className="mt-3 flex items-center gap-3">
+        <div className={`w-24 h-24 rounded-full ${currentUser.rank === 'Legend' ? 'rank-legend-avatar' : ''}`}>
+          <img
+            src={currentUser.avatar}
+            alt={currentUser.username}
+            className={`w-24 h-24 rounded-full border-4 ${currentUser.rank === 'Legend' ? 'border-transparent' : 'border-gold'} shadow-[0_0_20px_oklch(0.82_0.16_85/0.4)]`}
+          />
+        </div>
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <h1 className="font-heading text-xl font-bold text-foreground">{currentUser.username}</h1>
-          <span className="px-2.5 py-0.5 rounded-full bg-gold/20 text-gold text-xs font-heading font-bold">
-            {currentUser.rank.toUpperCase()}
-          </span>
+          <RankBadge rank={currentUser.rank} />
+          <StreakBadge streak={currentUser.streak} />
           {currentUser.verified && <Shield className="w-4 h-4 text-success" />}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Joined {currentUser.joinDate} · 🔥 {currentUser.streak} win streak</p>
+        <p className="text-xs text-muted-foreground mt-1">Joined {currentUser.joinDate}</p>
+        <div className="mt-2 max-w-xs">
+          <XPProgressBar rank={currentUser.rank} size="md" />
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-3 text-center"
-          >
-            <stat.icon className={`w-5 h-5 mx-auto mb-1 ${stat.color}`} />
-            <p className="font-heading text-lg font-bold text-foreground">{stat.value}</p>
-            <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
+      {/* Stats with tooltips */}
+      <TooltipProvider>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+          {stats.map((stat, i) => (
+            <Tooltip key={stat.label}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass-card p-3 text-center cursor-help"
+                >
+                  <stat.icon className={`w-5 h-5 mx-auto mb-1 ${stat.color}`} />
+                  <p className="font-heading text-lg font-bold text-foreground">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="bg-card border-border text-foreground max-w-[200px]">
+                <p className="text-xs">{statTooltips[stat.label]}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 border-b border-border overflow-x-auto">
@@ -104,7 +127,8 @@ function ProfilePage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.08 }}
-              className={`glass-card p-4 text-center ${a.earned ? '' : 'opacity-40'}`}
+              className={`glass-card p-4 text-center cursor-pointer hover:scale-105 transition-transform ${a.earned ? '' : 'opacity-40'}`}
+              onClick={() => a.earned && showAchievementToast(a)}
             >
               <div className="text-3xl mb-2">{a.icon}</div>
               <p className="font-heading text-xs font-bold text-foreground">{a.name}</p>

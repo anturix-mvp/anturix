@@ -6,7 +6,7 @@ import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
 import { PokerPoolCard } from '@/components/feed/PokerPoolCard';
 import { SwipeableCard } from '@/components/feed/SwipeableCard';
 import { PullToRefresh } from '@/components/feed/PullToRefresh';
-import { mockFeed } from '@/data/mockData';
+import { mockFeed, myBetsFeed, discoverFeed } from '@/data/mockData';
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -24,6 +24,8 @@ const tabs = ['Feed', 'My Bets', 'Discover'] as const;
 
 function FeedPage() {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Feed');
+
+  const activeFeed = activeTab === 'My Bets' ? myBetsFeed : activeTab === 'Discover' ? discoverFeed : mockFeed;
 
   return (
     <MainLayout>
@@ -50,25 +52,32 @@ function FeedPage() {
       {/* Feed with pull-to-refresh */}
       <PullToRefresh>
         <div className="space-y-4">
-          {mockFeed.map((item, i) => {
-            let card: React.ReactNode;
-            switch (item.type) {
-              case 'duel':
-                card = <DuelCard key={item.data.id} duel={item.data} index={i} />;
-                break;
-              case 'prediction':
-                card = <ExpertLockCard key={item.data.id} prediction={item.data} index={i} />;
-                break;
-              case 'pool':
-                card = <PokerPoolCard key={item.data.id} pool={item.data} index={i} />;
-                break;
-            }
-            return (
-              <SwipeableCard key={item.data.id}>
-                {card}
-              </SwipeableCard>
-            );
-          })}
+          {activeFeed.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-lg font-medium">No hay items aquí todavía</p>
+              <p className="text-sm mt-1">¡Crea tu primera apuesta!</p>
+            </div>
+          ) : (
+            activeFeed.map((item, i) => {
+              let card: React.ReactNode;
+              switch (item.type) {
+                case 'duel':
+                  card = <DuelCard key={item.data.id} duel={item.data} index={i} />;
+                  break;
+                case 'prediction':
+                  card = <ExpertLockCard key={item.data.id} prediction={item.data} index={i} />;
+                  break;
+                case 'pool':
+                  card = <PokerPoolCard key={item.data.id} pool={item.data} index={i} />;
+                  break;
+              }
+              return (
+                <SwipeableCard key={item.data.id}>
+                  {card}
+                </SwipeableCard>
+              );
+            })
+          )}
         </div>
       </PullToRefresh>
     </MainLayout>

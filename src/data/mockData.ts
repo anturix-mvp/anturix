@@ -82,3 +82,19 @@ export const mockAchievements: Achievement[] = [
 ];
 
 export const leaderboardUsers = [...mockUsers].sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+// My Bets - bets the current user is involved in
+export const myBetsFeed: FeedItem[] = [
+  { type: 'duel', data: mockDuels[0] }, // currentUser is challenger
+  { type: 'prediction', data: { ...mockPredictions[3], purchased: true } as any },
+  { type: 'pool', data: mockPools[0] }, // currentUser is participant
+];
+
+// Discover - trending/new items the user hasn't seen
+export const discoverFeed: FeedItem[] = [
+  { type: 'prediction', data: mockPredictions[3] },
+  { type: 'prediction', data: mockPredictions[4] },
+  { type: 'pool', data: mockPools[2] },
+  { type: 'duel', data: mockDuels[2] },
+  { type: 'pool', data: mockPools[1] },
+];

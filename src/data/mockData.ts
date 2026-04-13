@@ -1,6 +1,6 @@
 import type { User, Duel, Prediction, PokerPool, FeedItem, Achievement } from '@/types/anturix';
 
-const avatar = (seed: string) => `https://api.dicebear.com/9.x/bottts/svg?seed=${seed}&backgroundColor=0a0e1a,1a1a2e,2d1b69,0d2137&eyes=bulging,dizzy,eva,frame1,frame2,glow,happy,robocop,round,sensor,shade&mouth=bite,diagram,grill,square01,square02`;
+const avatar = (seed: string) => `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${seed}&backgroundColor=0a0e1a,1a1a2e,2d1b69,0d2137`;
 
 export const mockUsers: User[] = [
   { id: '1', username: 'CryptoAlpha_01', avatar: avatar('CryptoAlpha'), rank: 'Expert', wins: 145, losses: 7, winRate: 96, totalEarnings: 2340, reputationScore: 9800, activeDuels: 3, streak: 12, verified: true, joinDate: '2024-01-15' },

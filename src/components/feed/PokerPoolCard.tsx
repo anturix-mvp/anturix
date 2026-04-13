@@ -9,10 +9,10 @@ export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: nu
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="glass-card glass-card-hover overflow-hidden transition-all duration-300 cursor-pointer"
+      className="glass-card glass-card-hover card-scanline cyber-corners overflow-hidden transition-all duration-300 cursor-pointer"
       style={{ boxShadow: '0 0 20px oklch(0.7 0.22 340 / 0.15)' }}
     >
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 cyber-corners-bottom">
         {/* Title */}
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-sm font-bold text-foreground">{pool.title}</h3>

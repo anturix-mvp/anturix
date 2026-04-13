@@ -21,7 +21,7 @@ export function Navbar() {
           {/* Logo (mobile) */}
           <Link to="/" className="flex items-center gap-2">
             <img src={atxLogo} alt="ATX" className="w-16 h-16 rounded-lg object-cover" />
-            <span className="font-heading font-bold text-primary text-sm tracking-wider">ANTURIX</span>
+            <span className="font-heading font-bold text-sm tracking-wider" style={{ color: '#e0fcff', textShadow: '0 0 8px rgba(0, 255, 255, 0.6), 0 0 20px rgba(0, 255, 255, 0.3)' }}>ANTURIX</span>
           </Link>
 
           {/* Search */}

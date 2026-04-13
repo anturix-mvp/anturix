@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { Home, Rss, Search, Users, Trophy, Calendar, Settings } from 'lucide-react';
 import { useState } from 'react';
-
+import atxLogo from '@/assets/atx-logo.jpg';
 const navItems = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/', icon: Rss, label: 'Feed' },
@@ -20,9 +20,9 @@ export function Sidebar() {
     <aside
       className={`hidden lg:flex flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-56'}`}
     >
-      <div className="p-4 flex items-center gap-2">
+      <div className="p-3 flex items-center gap-2">
         <button onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center font-heading text-primary font-bold text-sm glow-cyan">A</div>
+          <img src={atxLogo} alt="ATX" className="w-9 h-9 rounded-lg object-cover" />
           {!collapsed && <span className="font-heading font-bold text-primary text-lg tracking-wider">ANTURIX</span>}
         </button>
       </div>

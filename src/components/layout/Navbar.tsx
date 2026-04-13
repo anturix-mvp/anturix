@@ -1,13 +1,14 @@
 import { Bell, Plus, Search, ChevronDown } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
+import atxLogo from '@/assets/atx-logo.jpg';
 
 export function Navbar() {
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-3">
       {/* Logo (mobile) */}
       <Link to="/" className="lg:hidden flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center font-heading text-primary font-bold text-xs">A</div>
+        <img src={atxLogo} alt="ATX" className="w-8 h-8 rounded-lg object-cover" />
         <span className="font-heading font-bold text-primary text-sm tracking-wider">ANTURIX</span>
       </Link>
 

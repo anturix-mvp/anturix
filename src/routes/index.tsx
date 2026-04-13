@@ -97,8 +97,8 @@ function FeedPage() {
         ))}
         {/* Sliding indicator */}
         <div
-          className="absolute bottom-0 h-0.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)] transition-all duration-300 ease-out"
-          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+          className="absolute bottom-0 h-[3px] bg-primary rounded-full transition-all duration-300 ease-out"
+          style={{ left: indicatorStyle.left, width: indicatorStyle.width, boxShadow: '0 0 8px var(--color-primary), 0 0 20px var(--color-primary), 0 0 40px color-mix(in srgb, var(--color-primary) 50%, transparent)' }}
         />
       </div>
 

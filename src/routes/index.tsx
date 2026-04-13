@@ -26,7 +26,7 @@ function FeedPage() {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Feed');
   const [animating, setAnimating] = useState(false);
   const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleTabChange = (tab: typeof tabs[number]) => {
     if (tab === activeTab) return;

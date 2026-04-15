@@ -22,13 +22,10 @@ fn test_init_profile_happy_path() {
     let profile: UserProfile = get_account(&svm, &pda);
 
     assert_eq!(profile.owner, pk(&user));
-    assert_eq!(profile.banter_wins, 0);
-    assert_eq!(profile.banter_losses, 0);
-    assert_eq!(profile.total_predictions, 0);
-    assert_eq!(profile.correct_predictions, 0);
+    assert_eq!(profile.wins, 0);
+    assert_eq!(profile.losses, 0);
     assert_eq!(profile.clown_until, 0);
     assert_eq!(profile.duel_count, 0);
-    assert_eq!(profile.pool_count, 0);
 }
 
 #[test]

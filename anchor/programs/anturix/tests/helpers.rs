@@ -5,10 +5,34 @@ use solana_sdk::{
     signature::{Keypair, Signer},
     transaction::Transaction,
     instruction::{Instruction, AccountMeta},
+    account::Account,
+    clock::Clock,
+    sysvar,
 };
 
 // Re-export anchor Pubkey for comparisons in tests
 pub use anchor_lang::prelude::Pubkey as AnchorPubkey;
+
+// ── Pyth constants ──
+
+/// Pyth Receiver program ID (must match pyth.rs)
+pub const PYTH_RECEIVER_ID: Pubkey = solana_sdk::pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
+
+/// SOL/USD feed ID
+pub const SOL_USD_FEED: [u8; 32] = [
+    0xef, 0x0d, 0x8b, 0x6f, 0xda, 0x2c, 0xeb, 0xa4,
+    0x1d, 0xa1, 0x5d, 0x40, 0x95, 0xd1, 0xda, 0x39,
+    0x2a, 0x0d, 0x2f, 0x8e, 0xd0, 0xc6, 0xc7, 0xbc,
+    0x0f, 0x4c, 0xfa, 0xc8, 0xc2, 0x80, 0xb5, 0x6d,
+];
+
+/// BTC/USD feed ID
+pub const BTC_USD_FEED: [u8; 32] = [
+    0xe6, 0x2d, 0xf6, 0xc8, 0xb4, 0xa8, 0x5f, 0xe1,
+    0xa6, 0x7d, 0xb4, 0x4d, 0xc1, 0x2d, 0xe5, 0xdb,
+    0x33, 0x0f, 0x7a, 0xc6, 0x6b, 0x72, 0xdc, 0x65,
+    0x8a, 0xfe, 0xdf, 0x0f, 0x4a, 0x41, 0x5b, 0x43,
+];
 
 /// Convert anchor AccountMetas to solana-sdk AccountMetas
 fn convert_account_metas(metas: Vec<anchor_lang::prelude::AccountMeta>) -> Vec<AccountMeta> {
@@ -62,24 +86,6 @@ pub fn escrow_pda(duel_state: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"escrow", duel_state.as_ref()], &prog_id())
 }
 
-pub fn expert_lock_pda(expert: &Pubkey, event_id: &str) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[b"expert_lock", expert.as_ref(), event_id.as_bytes()],
-        &prog_id(),
-    )
-}
-
-pub fn poker_pda(creator: &Pubkey, pool_count: u64) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[b"poker", creator.as_ref(), &pool_count.to_le_bytes()],
-        &prog_id(),
-    )
-}
-
-pub fn poker_escrow_pda(poker_pool: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"poker_escrow", poker_pool.as_ref()], &prog_id())
-}
-
 // ── SVM setup ──
 
 pub fn setup() -> LiteSVM {
@@ -128,8 +134,85 @@ fn ap(pk: &Pubkey) -> AnchorPubkey {
 }
 
 fn sys_id() -> AnchorPubkey {
-    // solana system program well-known ID
     AnchorPubkey::new_from_array([0u8; 32])
+}
+
+// ── Pyth mock helpers ──
+
+/// Build raw bytes for a PriceUpdateV2 account
+pub fn build_mock_price_update(
+    feed_id: &[u8; 32],
+    price: i64,
+    conf: u64,
+    exponent: i32,
+    publish_time: i64,
+) -> Vec<u8> {
+    // SHA256("account:PriceUpdateV2")[..8]
+    let discriminator: [u8; 8] = [0x22, 0xf1, 0x23, 0x63, 0x9d, 0x7e, 0xf4, 0xcd];
+    let write_authority = [0u8; 32]; // dummy
+    let verification_level: u8 = 1; // Full
+
+    let prev_publish_time = publish_time - 1;
+    let ema_price: i64 = price;
+    let ema_conf: u64 = conf;
+    let posted_slot: u64 = 100;
+
+    let mut data = Vec::with_capacity(128);
+    data.extend_from_slice(&discriminator);        // 8
+    data.extend_from_slice(&write_authority);       // 32
+    data.extend_from_slice(&[verification_level]);  // 1  (offset 40)
+    // PriceFeedMessage starts at offset 41
+    data.extend_from_slice(feed_id);                // 32
+    data.extend_from_slice(&price.to_le_bytes());   // 8
+    data.extend_from_slice(&conf.to_le_bytes());    // 8
+    data.extend_from_slice(&exponent.to_le_bytes()); // 4
+    data.extend_from_slice(&publish_time.to_le_bytes()); // 8
+    data.extend_from_slice(&prev_publish_time.to_le_bytes()); // 8
+    data.extend_from_slice(&ema_price.to_le_bytes()); // 8
+    data.extend_from_slice(&ema_conf.to_le_bytes());  // 8
+    data.extend_from_slice(&posted_slot.to_le_bytes()); // 8
+    data
+}
+
+/// Create a mock Pyth price update account in LiteSVM and return its pubkey
+pub fn create_mock_pyth_account(
+    svm: &mut LiteSVM,
+    feed_id: &[u8; 32],
+    price: i64,
+    conf: u64,
+    exponent: i32,
+    publish_time: i64,
+) -> Pubkey {
+    let data = build_mock_price_update(feed_id, price, conf, exponent, publish_time);
+    let key = Keypair::new().pubkey();
+    let account = Account {
+        lamports: 1_000_000_000, // enough rent
+        data,
+        owner: PYTH_RECEIVER_ID,
+        executable: false,
+        rent_epoch: 0,
+    };
+    svm.set_account(key, account).unwrap();
+    key
+}
+
+/// Set SVM clock to a specific unix timestamp
+pub fn set_clock(svm: &mut LiteSVM, unix_timestamp: i64) {
+    let clock = Clock {
+        slot: 100,
+        epoch_start_timestamp: unix_timestamp,
+        epoch: 1,
+        leader_schedule_epoch: 1,
+        unix_timestamp,
+    };
+    svm.set_sysvar(&clock);
+}
+
+// ── Admin keypair ──
+
+pub fn admin_pubkey() -> Pubkey {
+    // Must match ADMIN_PUBKEY in constants.rs
+    solana_sdk::pubkey!("8RAViABqHQkdSesxZqqFcWnEYnw5baVN2AQB2Z2CmQgX")
 }
 
 // ── Instruction builders ──
@@ -149,8 +232,9 @@ pub fn ix_init_profile(owner: &Pubkey) -> Instruction {
 pub fn ix_create_duel(
     creator: &Pubkey,
     duel_count: u64,
-    event_id: &str,
-    prediction: &str,
+    price_feed_id: [u8; 32],
+    target_price: i64,
+    condition: anturix::state::Condition,
     stake_amount: u64,
     target_opponent: Option<Pubkey>,
     expires_at: i64,
@@ -168,8 +252,9 @@ pub fn ix_create_duel(
             system_program: sys_id(),
         },
         anturix::instruction::CreateDuel {
-            event_id: event_id.to_string(),
-            prediction: prediction.to_string(),
+            price_feed_id,
+            target_price,
+            condition,
             stake_amount,
             target_opponent: target_opponent.map(|p| ap(&p)),
             expires_at,
@@ -193,18 +278,25 @@ pub fn ix_accept_duel(opponent: &Pubkey, duel_state: &Pubkey) -> Instruction {
     )
 }
 
-pub fn ix_resolve_duel(admin: &Pubkey, duel_state: &Pubkey, winner: &Pubkey, loser: &Pubkey) -> Instruction {
-    let (winner_profile, _) = profile_pda(winner);
-    let (loser_profile, _) = profile_pda(loser);
+pub fn ix_resolve_duel(
+    resolver: &Pubkey,
+    duel_state: &Pubkey,
+    creator: &Pubkey,
+    opponent: &Pubkey,
+    price_update: &Pubkey,
+) -> Instruction {
+    let (creator_profile, _) = profile_pda(creator);
+    let (opponent_profile, _) = profile_pda(opponent);
 
     build_ix(
         anturix::accounts::ResolveDuel {
-            admin: ap(admin),
+            resolver: ap(resolver),
             duel_state: ap(duel_state),
-            winner_profile: ap(&winner_profile),
-            loser_profile: ap(&loser_profile),
+            price_update: ap(price_update),
+            creator_profile: ap(&creator_profile),
+            opponent_profile: ap(&opponent_profile),
         },
-        anturix::instruction::ResolveDuel { winner: ap(winner) }.data(),
+        anturix::instruction::ResolveDuel {}.data(),
     )
 }
 
@@ -267,151 +359,6 @@ pub fn ix_force_cancel_duel(admin: &Pubkey, creator: &Pubkey, opponent: &Pubkey,
     )
 }
 
-pub fn ix_create_expert_lock(expert: &Pubkey, prediction_hash: [u8; 32], fee: u64, event_id: &str, expires_at: i64) -> Instruction {
-    let (profile, _) = profile_pda(expert);
-    let (lock, _) = expert_lock_pda(expert, event_id);
-
-    build_ix(
-        anturix::accounts::CreateExpertLock {
-            expert: ap(expert),
-            expert_profile: ap(&profile),
-            expert_lock: ap(&lock),
-            system_program: sys_id(),
-        },
-        anturix::instruction::CreateExpertLock {
-            prediction_hash,
-            fee,
-            event_id: event_id.to_string(),
-            expires_at,
-        }.data(),
-    )
-}
-
-pub fn ix_buy_expert_lock(buyer: &Pubkey, expert: &Pubkey, lock: &Pubkey) -> Instruction {
-    build_ix(
-        anturix::accounts::BuyExpertLock {
-            buyer: ap(buyer),
-            expert: ap(expert),
-            expert_lock: ap(lock),
-            system_program: sys_id(),
-        },
-        anturix::instruction::BuyExpertLock {}.data(),
-    )
-}
-
-pub fn ix_reveal_expert_lock(expert: &Pubkey, lock: &Pubkey, prediction: &str, salt: [u8; 16]) -> Instruction {
-    build_ix(
-        anturix::accounts::RevealExpertLock {
-            expert: ap(expert),
-            expert_lock: ap(lock),
-        },
-        anturix::instruction::RevealExpertLock {
-            prediction: prediction.to_string(),
-            salt,
-        }.data(),
-    )
-}
-
-pub fn ix_resolve_expert_lock(admin: &Pubkey, lock: &Pubkey, expert: &Pubkey, correct: bool) -> Instruction {
-    let (expert_profile, _) = profile_pda(expert);
-
-    build_ix(
-        anturix::accounts::ResolveExpertLock {
-            admin: ap(admin),
-            expert_lock: ap(lock),
-            expert_profile: ap(&expert_profile),
-        },
-        anturix::instruction::ResolveExpertLock { correct }.data(),
-    )
-}
-
-pub fn ix_create_poker_pool(creator: &Pubkey, pool_count: u64, buy_in: u64) -> Instruction {
-    let (profile, _) = profile_pda(creator);
-    let (pool, _) = poker_pda(creator, pool_count);
-    let (escrow, _) = poker_escrow_pda(&pool);
-
-    build_ix(
-        anturix::accounts::CreatePokerPool {
-            creator: ap(creator),
-            creator_profile: ap(&profile),
-            poker_pool: ap(&pool),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
-        },
-        anturix::instruction::CreatePokerPool { buy_in }.data(),
-    )
-}
-
-pub fn ix_join_poker_pool(player: &Pubkey, pool: &Pubkey) -> Instruction {
-    let (escrow, _) = poker_escrow_pda(pool);
-
-    build_ix(
-        anturix::accounts::JoinPokerPool {
-            player: ap(player),
-            poker_pool: ap(pool),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
-        },
-        anturix::instruction::JoinPokerPool {}.data(),
-    )
-}
-
-pub fn ix_leave_poker_pool(player: &Pubkey, pool: &Pubkey) -> Instruction {
-    let (escrow, _) = poker_escrow_pda(pool);
-
-    build_ix(
-        anturix::accounts::LeavePokerPool {
-            player: ap(player),
-            poker_pool: ap(pool),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
-        },
-        anturix::instruction::LeavePokerPool {}.data(),
-    )
-}
-
-pub fn ix_close_poker_pool(creator: &Pubkey, pool: &Pubkey, player_keys: &[Pubkey]) -> Instruction {
-    let (escrow, _) = poker_escrow_pda(pool);
-
-    let anchor_accounts = anturix::accounts::ClosePokerPool {
-        creator: ap(creator),
-        poker_pool: ap(pool),
-        escrow: ap(&escrow),
-        system_program: sys_id(),
-    };
-    let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
-
-    for key in player_keys {
-        metas.push(AccountMeta::new(*key, false));
-    }
-
-    Instruction {
-        program_id: prog_id(),
-        accounts: metas,
-        data: anturix::instruction::ClosePokerPool {}.data(),
-    }
-}
-
-// ── Admin keypair ──
-
-pub fn load_admin_keypair() -> Keypair {
-    let kp_bytes = std::fs::read(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/admin-keypair.json")
-    ).unwrap();
-    let bytes: Vec<u8> = serde_json::from_slice(&kp_bytes).unwrap();
-    Keypair::try_from(bytes.as_slice()).unwrap()
-}
-
-// ── Hash helper for expert lock ──
-
-pub fn compute_prediction_hash(prediction: &str, salt: &[u8; 16]) -> [u8; 32] {
-    use sha2::{Sha256, Digest};
-    let mut hasher = Sha256::new();
-    hasher.update(prediction.as_bytes());
-    hasher.update(salt);
-    hasher.finalize().into()
-}
-
 // ── Account deserialization ──
 
 pub fn get_account<T: AccountDeserialize>(
@@ -422,7 +369,6 @@ pub fn get_account<T: AccountDeserialize>(
     T::try_deserialize(&mut &account.data[..]).expect("failed to deserialize")
 }
 
-/// Convert solana_sdk Pubkey to anchor_lang Pubkey for comparisons
 pub fn to_anchor_pubkey(pk: &Pubkey) -> AnchorPubkey {
     AnchorPubkey::new_from_array(pk.to_bytes())
 }
@@ -444,7 +390,6 @@ pub fn past_ts() -> i64 {
     1_000_000_000
 }
 
-/// Advance LiteSVM slot to avoid AlreadyProcessed errors on duplicate-looking txs
 pub fn advance_slot(svm: &mut LiteSVM) {
     svm.expire_blockhash();
 }

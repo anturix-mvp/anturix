@@ -56,25 +56,19 @@ export function getUserProfileDiscriminatorBytes() {
 export type UserProfile = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
-  banterWins: number;
-  banterLosses: number;
-  totalPredictions: number;
-  correctPredictions: number;
+  wins: number;
+  losses: number;
   clownUntil: bigint;
   duelCount: bigint;
-  poolCount: bigint;
   bump: number;
 };
 
 export type UserProfileArgs = {
   owner: Address;
-  banterWins: number;
-  banterLosses: number;
-  totalPredictions: number;
-  correctPredictions: number;
+  wins: number;
+  losses: number;
   clownUntil: number | bigint;
   duelCount: number | bigint;
-  poolCount: number | bigint;
   bump: number;
 };
 
@@ -84,13 +78,10 @@ export function getUserProfileEncoder(): FixedSizeEncoder<UserProfileArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["owner", getAddressEncoder()],
-      ["banterWins", getU32Encoder()],
-      ["banterLosses", getU32Encoder()],
-      ["totalPredictions", getU32Encoder()],
-      ["correctPredictions", getU32Encoder()],
+      ["wins", getU32Encoder()],
+      ["losses", getU32Encoder()],
       ["clownUntil", getI64Encoder()],
       ["duelCount", getU64Encoder()],
-      ["poolCount", getU64Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: USER_PROFILE_DISCRIMINATOR }),
@@ -102,13 +93,10 @@ export function getUserProfileDecoder(): FixedSizeDecoder<UserProfile> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
-    ["banterWins", getU32Decoder()],
-    ["banterLosses", getU32Decoder()],
-    ["totalPredictions", getU32Decoder()],
-    ["correctPredictions", getU32Decoder()],
+    ["wins", getU32Decoder()],
+    ["losses", getU32Decoder()],
     ["clownUntil", getI64Decoder()],
     ["duelCount", getU64Decoder()],
-    ["poolCount", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -175,5 +163,5 @@ export async function fetchAllMaybeUserProfile(
 }
 
 export function getUserProfileSize(): number {
-  return 81;
+  return 65;
 }

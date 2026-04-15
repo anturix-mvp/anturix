@@ -7,6 +7,4 @@
  */
 
 export * from "./duelState";
-export * from "./expertLockState";
-export * from "./pokerPool";
 export * from "./userProfile";

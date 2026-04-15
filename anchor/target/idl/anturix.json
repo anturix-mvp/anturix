@@ -86,38 +86,6 @@
       "args": []
     },
     {
-      "name": "buy_expert_lock",
-      "discriminator": [
-        36,
-        253,
-        201,
-        108,
-        187,
-        135,
-        156,
-        61
-      ],
-      "accounts": [
-        {
-          "name": "buyer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "expert",
-          "writable": true
-        },
-        {
-          "name": "expert_lock"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "cancel_duel",
       "discriminator": [
         83,
@@ -210,64 +178,6 @@
               {
                 "kind": "account",
                 "path": "duel_state"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "close_poker_pool",
-      "discriminator": [
-        113,
-        90,
-        114,
-        89,
-        205,
-        55,
-        166,
-        61
-      ],
-      "accounts": [
-        {
-          "name": "creator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "poker_pool",
-          "writable": true
-        },
-        {
-          "name": "escrow",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  107,
-                  101,
-                  114,
-                  95,
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poker_pool"
               }
             ]
           }
@@ -377,12 +287,25 @@
       ],
       "args": [
         {
-          "name": "event_id",
-          "type": "string"
+          "name": "price_feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
-          "name": "prediction",
-          "type": "string"
+          "name": "target_price",
+          "type": "i64"
+        },
+        {
+          "name": "condition",
+          "type": {
+            "defined": {
+              "name": "Condition"
+            }
+          }
         },
         {
           "name": "stake_amount",
@@ -397,218 +320,6 @@
         {
           "name": "expires_at",
           "type": "i64"
-        }
-      ]
-    },
-    {
-      "name": "create_expert_lock",
-      "discriminator": [
-        105,
-        139,
-        33,
-        213,
-        3,
-        160,
-        105,
-        221
-      ],
-      "accounts": [
-        {
-          "name": "expert",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "expert_profile",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  102,
-                  105,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "expert"
-              }
-            ]
-          }
-        },
-        {
-          "name": "expert_lock",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  120,
-                  112,
-                  101,
-                  114,
-                  116,
-                  95,
-                  108,
-                  111,
-                  99,
-                  107
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "expert"
-              },
-              {
-                "kind": "arg",
-                "path": "event_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "prediction_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "fee",
-          "type": "u64"
-        },
-        {
-          "name": "event_id",
-          "type": "string"
-        },
-        {
-          "name": "expires_at",
-          "type": "i64"
-        }
-      ]
-    },
-    {
-      "name": "create_poker_pool",
-      "discriminator": [
-        6,
-        232,
-        180,
-        26,
-        177,
-        249,
-        39,
-        41
-      ],
-      "accounts": [
-        {
-          "name": "creator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "creator_profile",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  102,
-                  105,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "creator"
-              }
-            ]
-          }
-        },
-        {
-          "name": "poker_pool",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  107,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "creator"
-              },
-              {
-                "kind": "account",
-                "path": "creator_profile.pool_count",
-                "account": "UserProfile"
-              }
-            ]
-          }
-        },
-        {
-          "name": "escrow",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  107,
-                  101,
-                  114,
-                  95,
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poker_pool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "buy_in",
-          "type": "u64"
         }
       ]
     },
@@ -779,122 +490,6 @@
       "args": []
     },
     {
-      "name": "join_poker_pool",
-      "discriminator": [
-        172,
-        158,
-        159,
-        121,
-        31,
-        243,
-        250,
-        202
-      ],
-      "accounts": [
-        {
-          "name": "player",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "poker_pool",
-          "writable": true
-        },
-        {
-          "name": "escrow",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  107,
-                  101,
-                  114,
-                  95,
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poker_pool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "leave_poker_pool",
-      "discriminator": [
-        42,
-        105,
-        195,
-        5,
-        113,
-        15,
-        109,
-        171
-      ],
-      "accounts": [
-        {
-          "name": "player",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "poker_pool",
-          "writable": true
-        },
-        {
-          "name": "escrow",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  107,
-                  101,
-                  114,
-                  95,
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poker_pool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "resolve_duel",
       "discriminator": [
         213,
@@ -908,7 +503,10 @@
       ],
       "accounts": [
         {
-          "name": "admin",
+          "name": "resolver",
+          "docs": [
+            "Anyone can resolve — permissionless (cranker, participant, etc.)"
+          ],
           "signer": true
         },
         {
@@ -916,7 +514,10 @@
           "writable": true
         },
         {
-          "name": "winner_profile",
+          "name": "price_update"
+        },
+        {
+          "name": "creator_profile",
           "writable": true,
           "pda": {
             "seeds": [
@@ -934,14 +535,14 @@
               },
               {
                 "kind": "account",
-                "path": "winner_profile.owner",
-                "account": "UserProfile"
+                "path": "duel_state.creator",
+                "account": "DuelState"
               }
             ]
           }
         },
         {
-          "name": "loser_profile",
+          "name": "opponent_profile",
           "writable": true,
           "pda": {
             "seeds": [
@@ -959,111 +560,14 @@
               },
               {
                 "kind": "account",
-                "path": "loser_profile.owner",
-                "account": "UserProfile"
+                "path": "duel_state.opponent",
+                "account": "DuelState"
               }
             ]
           }
         }
       ],
-      "args": [
-        {
-          "name": "winner",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "resolve_expert_lock",
-      "discriminator": [
-        192,
-        95,
-        67,
-        38,
-        222,
-        118,
-        74,
-        42
-      ],
-      "accounts": [
-        {
-          "name": "admin",
-          "signer": true
-        },
-        {
-          "name": "expert_lock",
-          "writable": true
-        },
-        {
-          "name": "expert_profile",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  102,
-                  105,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "expert_lock.expert",
-                "account": "ExpertLockState"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "correct",
-          "type": "bool"
-        }
-      ]
-    },
-    {
-      "name": "reveal_expert_lock",
-      "discriminator": [
-        221,
-        106,
-        26,
-        184,
-        74,
-        166,
-        232,
-        197
-      ],
-      "accounts": [
-        {
-          "name": "expert",
-          "signer": true
-        },
-        {
-          "name": "expert_lock",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "prediction",
-          "type": "string"
-        },
-        {
-          "name": "salt",
-          "type": {
-            "array": [
-              "u8",
-              16
-            ]
-          }
-        }
-      ]
+      "args": []
     }
   ],
   "accounts": [
@@ -1078,32 +582,6 @@
         116,
         145,
         120
-      ]
-    },
-    {
-      "name": "ExpertLockState",
-      "discriminator": [
-        173,
-        3,
-        0,
-        97,
-        73,
-        228,
-        85,
-        234
-      ]
-    },
-    {
-      "name": "PokerPool",
-      "discriminator": [
-        134,
-        131,
-        177,
-        14,
-        176,
-        81,
-        173,
-        187
       ]
     },
     {
@@ -1174,97 +652,6 @@
       ]
     },
     {
-      "name": "ExpertLockCreated",
-      "discriminator": [
-        106,
-        200,
-        118,
-        195,
-        102,
-        163,
-        238,
-        90
-      ]
-    },
-    {
-      "name": "ExpertLockPurchased",
-      "discriminator": [
-        224,
-        224,
-        189,
-        219,
-        64,
-        223,
-        117,
-        234
-      ]
-    },
-    {
-      "name": "ExpertLockResolved",
-      "discriminator": [
-        145,
-        140,
-        138,
-        218,
-        179,
-        124,
-        67,
-        97
-      ]
-    },
-    {
-      "name": "ExpertLockRevealed",
-      "discriminator": [
-        225,
-        89,
-        81,
-        46,
-        104,
-        221,
-        114,
-        235
-      ]
-    },
-    {
-      "name": "PlayerJoined",
-      "discriminator": [
-        39,
-        144,
-        49,
-        106,
-        108,
-        210,
-        183,
-        38
-      ]
-    },
-    {
-      "name": "PlayerLeft",
-      "discriminator": [
-        7,
-        106,
-        62,
-        150,
-        175,
-        170,
-        96,
-        84
-      ]
-    },
-    {
-      "name": "PokerPoolCreated",
-      "discriminator": [
-        174,
-        188,
-        212,
-        38,
-        78,
-        100,
-        248,
-        209
-      ]
-    },
-    {
       "name": "PrizeClaimed",
       "discriminator": [
         213,
@@ -1286,116 +673,94 @@
     },
     {
       "code": 6001,
-      "name": "EventIdTooLong",
-      "msg": "Event ID exceeds 64 chars"
-    },
-    {
-      "code": 6002,
-      "name": "PredictionTooLong",
-      "msg": "Prediction exceeds 280 chars"
-    },
-    {
-      "code": 6003,
       "name": "InvalidDuelStatus",
       "msg": "Duel not in expected status"
     },
     {
-      "code": 6004,
+      "code": 6002,
       "name": "DuelExpired",
       "msg": "Duel has expired"
     },
     {
-      "code": 6005,
+      "code": 6003,
       "name": "DuelNotExpired",
       "msg": "Duel has not expired yet"
     },
     {
-      "code": 6006,
+      "code": 6004,
       "name": "WrongOpponent",
       "msg": "Not the target opponent for this duel"
     },
     {
-      "code": 6007,
+      "code": 6005,
       "name": "SelfDuel",
       "msg": "Cannot duel yourself"
     },
     {
-      "code": 6008,
+      "code": 6006,
       "name": "UnauthorizedAdmin",
       "msg": "Unauthorized — not admin"
     },
     {
-      "code": 6009,
-      "name": "InvalidWinner",
-      "msg": "Winner must be creator or opponent"
-    },
-    {
-      "code": 6010,
+      "code": 6007,
       "name": "NotWinner",
       "msg": "Not the winner"
     },
     {
-      "code": 6011,
-      "name": "InsufficientBanterWins",
-      "msg": "Need 3+ banter wins to create expert lock"
-    },
-    {
-      "code": 6012,
-      "name": "HashMismatch",
-      "msg": "Prediction hash mismatch on reveal"
-    },
-    {
-      "code": 6013,
-      "name": "InvalidFee",
-      "msg": "Fee must be greater than zero"
-    },
-    {
-      "code": 6014,
-      "name": "ExpertLockExpired",
-      "msg": "Expert lock expired"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidExpertLockStatus",
-      "msg": "Expert lock not in expected status"
-    },
-    {
-      "code": 6016,
-      "name": "PoolFull",
-      "msg": "Poker pool is full"
-    },
-    {
-      "code": 6017,
-      "name": "AlreadyInPool",
-      "msg": "Already in this pool"
-    },
-    {
-      "code": 6018,
-      "name": "PlayerNotInPool",
-      "msg": "Not in this pool"
-    },
-    {
-      "code": 6019,
-      "name": "InvalidPoolStatus",
-      "msg": "Pool not in expected status"
-    },
-    {
-      "code": 6020,
-      "name": "InvalidBuyIn",
-      "msg": "Buy-in must be greater than zero"
-    },
-    {
-      "code": 6021,
+      "code": 6008,
       "name": "InvalidExpiry",
       "msg": "Expiry must be in the future"
     },
     {
-      "code": 6022,
+      "code": 6009,
       "name": "Overflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidPriceFeed",
+      "msg": "Price feed ID does not match expected feed"
+    },
+    {
+      "code": 6011,
+      "name": "PriceTooStale",
+      "msg": "Price update is too stale"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidPriceAccount",
+      "msg": "Invalid Pyth price account (wrong owner or data)"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidTargetPrice",
+      "msg": "Target price must be positive"
+    },
+    {
+      "code": 6014,
+      "name": "PriceConfidenceTooWide",
+      "msg": "Oracle confidence interval too wide (>5%), price unreliable"
     }
   ],
   "types": [
+    {
+      "name": "Condition",
+      "docs": [
+        "Creator bets the condition is true, opponent bets it is false.",
+        "Strict inequality: price == target_price means opponent wins."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Above"
+          },
+          {
+            "name": "Below"
+          }
+        ]
+      }
+    },
     {
       "name": "DuelAccepted",
       "type": {
@@ -1442,16 +807,25 @@
             "type": "pubkey"
           },
           {
-            "name": "event_id",
-            "type": "string"
+            "name": "price_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_price",
+            "type": "i64"
+          },
+          {
+            "name": "condition",
+            "type": "u8"
           },
           {
             "name": "stake_amount",
             "type": "u64"
-          },
-          {
-            "name": "prediction",
-            "type": "string"
           },
           {
             "name": "target_opponent",
@@ -1482,6 +856,14 @@
           {
             "name": "loser",
             "type": "pubkey"
+          },
+          {
+            "name": "oracle_price",
+            "type": "i64"
+          },
+          {
+            "name": "oracle_exponent",
+            "type": "i32"
           }
         ]
       }
@@ -1500,8 +882,25 @@
             "type": "pubkey"
           },
           {
-            "name": "event_id",
-            "type": "string"
+            "name": "price_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_price",
+            "type": "i64"
+          },
+          {
+            "name": "condition",
+            "type": {
+              "defined": {
+                "name": "Condition"
+              }
+            }
           },
           {
             "name": "stake_amount",
@@ -1560,272 +959,6 @@
       }
     },
     {
-      "name": "ExpertLockCreated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lock",
-            "type": "pubkey"
-          },
-          {
-            "name": "expert",
-            "type": "pubkey"
-          },
-          {
-            "name": "event_id",
-            "type": "string"
-          },
-          {
-            "name": "fee",
-            "type": "u64"
-          },
-          {
-            "name": "expires_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ExpertLockPurchased",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lock",
-            "type": "pubkey"
-          },
-          {
-            "name": "buyer",
-            "type": "pubkey"
-          },
-          {
-            "name": "fee",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ExpertLockResolved",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lock",
-            "type": "pubkey"
-          },
-          {
-            "name": "correct",
-            "type": "bool"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ExpertLockRevealed",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lock",
-            "type": "pubkey"
-          },
-          {
-            "name": "prediction",
-            "type": "string"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ExpertLockState",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "expert",
-            "type": "pubkey"
-          },
-          {
-            "name": "event_id",
-            "type": "string"
-          },
-          {
-            "name": "prediction_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "fee",
-            "type": "u64"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "ExpertLockStatus"
-              }
-            }
-          },
-          {
-            "name": "result_correct",
-            "type": {
-              "option": "bool"
-            }
-          },
-          {
-            "name": "expires_at",
-            "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ExpertLockStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Active"
-          },
-          {
-            "name": "Revealed"
-          },
-          {
-            "name": "Resolved"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PlayerJoined",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "player",
-            "type": "pubkey"
-          },
-          {
-            "name": "seat",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PlayerLeft",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "player",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PokerPool",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "buy_in",
-            "type": "u64"
-          },
-          {
-            "name": "players",
-            "type": {
-              "array": [
-                "pubkey",
-                6
-              ]
-            }
-          },
-          {
-            "name": "player_count",
-            "type": "u8"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "PoolStatus"
-              }
-            }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "escrow_bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PokerPoolCreated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "buy_in",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PoolStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Open"
-          },
-          {
-            "name": "Full"
-          },
-          {
-            "name": "Closed"
-          }
-        ]
-      }
-    },
-    {
       "name": "PrizeClaimed",
       "type": {
         "kind": "struct",
@@ -1855,19 +988,11 @@
             "type": "pubkey"
           },
           {
-            "name": "banter_wins",
+            "name": "wins",
             "type": "u32"
           },
           {
-            "name": "banter_losses",
-            "type": "u32"
-          },
-          {
-            "name": "total_predictions",
-            "type": "u32"
-          },
-          {
-            "name": "correct_predictions",
+            "name": "losses",
             "type": "u32"
           },
           {
@@ -1876,10 +1001,6 @@
           },
           {
             "name": "duel_count",
-            "type": "u64"
-          },
-          {
-            "name": "pool_count",
             "type": "u64"
           },
           {

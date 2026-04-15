@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+  SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
@@ -30,13 +32,13 @@ import {
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
+import {
+  getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
+  type ResolvedInstructionAccount,
+} from "@solana/program-client-core";
 import { findEscrowPda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
-import {
-  expectAddress,
-  getAccountMetaFactory,
-  type ResolvedAccount,
-} from "../shared";
 
 export const CANCEL_DUEL_DISCRIMINATOR = new Uint8Array([
   83, 124, 224, 237, 235, 44, 38, 57,
@@ -149,13 +151,16 @@ export async function getCancelDuelInstructionAsync<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
-      duelState: expectAddress(accounts.duelState.value),
+      duelState: getAddressFromResolvedInstructionAccount(
+        "duelState",
+        accounts.duelState.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {
@@ -166,10 +171,10 @@ export async function getCancelDuelInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.creator),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCancelDuelInstructionDataEncoder().encode({}),
     programAddress,
@@ -227,7 +232,7 @@ export function getCancelDuelInstruction<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
@@ -239,10 +244,10 @@ export function getCancelDuelInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.creator),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCancelDuelInstructionDataEncoder().encode({}),
     programAddress,
@@ -278,8 +283,13 @@ export function parseCancelDuelInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCancelDuelInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    // TODO: Coded error.
-    throw new Error("Not enough accounts");
+    throw new SolanaError(
+      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+      {
+        actualAccountMetas: instruction.accounts.length,
+        expectedAccountMetas: 4,
+      },
+    );
   }
   let accountIndex = 0;
   const getNextAccount = () => {

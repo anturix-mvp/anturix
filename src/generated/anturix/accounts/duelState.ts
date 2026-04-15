@@ -7,8 +7,6 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   assertAccountExists,
   assertAccountsExist,
   combineCodec,
@@ -27,14 +25,10 @@ import {
   getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
   getU8Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
   transformEncoder,
   type Account,
   type Address,
@@ -51,8 +45,12 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
+  getConditionDecoder,
+  getConditionEncoder,
   getDuelStatusDecoder,
   getDuelStatusEncoder,
+  type Condition,
+  type ConditionArgs,
   type DuelStatus,
   type DuelStatusArgs,
 } from "../types";
@@ -69,7 +67,9 @@ export type DuelState = {
   discriminator: ReadonlyUint8Array;
   creator: Address;
   opponent: Address;
-  eventId: string;
+  priceFeedId: ReadonlyUint8Array;
+  targetPrice: bigint;
+  condition: Condition;
   stakeAmount: bigint;
   status: DuelStatus;
   winner: Option<Address>;
@@ -81,7 +81,9 @@ export type DuelState = {
 export type DuelStateArgs = {
   creator: Address;
   opponent: Address;
-  eventId: string;
+  priceFeedId: ReadonlyUint8Array;
+  targetPrice: number | bigint;
+  condition: ConditionArgs;
   stakeAmount: number | bigint;
   status: DuelStatusArgs;
   winner: OptionOrNullable<Address>;
@@ -97,7 +99,9 @@ export function getDuelStateEncoder(): Encoder<DuelStateArgs> {
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["creator", getAddressEncoder()],
       ["opponent", getAddressEncoder()],
-      ["eventId", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
+      ["targetPrice", getI64Encoder()],
+      ["condition", getConditionEncoder()],
       ["stakeAmount", getU64Encoder()],
       ["status", getDuelStatusEncoder()],
       ["winner", getOptionEncoder(getAddressEncoder())],
@@ -115,7 +119,9 @@ export function getDuelStateDecoder(): Decoder<DuelState> {
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["creator", getAddressDecoder()],
     ["opponent", getAddressDecoder()],
-    ["eventId", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
+    ["targetPrice", getI64Decoder()],
+    ["condition", getConditionDecoder()],
     ["stakeAmount", getU64Decoder()],
     ["status", getDuelStatusDecoder()],
     ["winner", getOptionDecoder(getAddressDecoder())],

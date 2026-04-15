@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+  SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
@@ -30,13 +32,13 @@ import {
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
+import {
+  getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
+  type ResolvedInstructionAccount,
+} from "@solana/program-client-core";
 import { findUserProfilePda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
-import {
-  expectAddress,
-  getAccountMetaFactory,
-  type ResolvedAccount,
-} from "../shared";
 
 export const INIT_USER_PROFILE_DISCRIMINATOR = new Uint8Array([
   148, 35, 126, 247, 28, 169, 135, 175,
@@ -143,13 +145,16 @@ export async function getInitUserProfileInstructionAsync<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
   if (!accounts.userProfile.value) {
     accounts.userProfile.value = await findUserProfilePda({
-      owner: expectAddress(accounts.owner.value),
+      owner: getAddressFromResolvedInstructionAccount(
+        "owner",
+        accounts.owner.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {
@@ -160,9 +165,9 @@ export async function getInitUserProfileInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.owner),
-      getAccountMeta(accounts.userProfile),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getInitUserProfileInstructionDataEncoder().encode({}),
     programAddress,
@@ -213,7 +218,7 @@ export function getInitUserProfileInstruction<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
@@ -225,9 +230,9 @@ export function getInitUserProfileInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.owner),
-      getAccountMeta(accounts.userProfile),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getInitUserProfileInstructionDataEncoder().encode({}),
     programAddress,
@@ -261,8 +266,13 @@ export function parseInitUserProfileInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitUserProfileInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 3) {
-    // TODO: Coded error.
-    throw new Error("Not enough accounts");
+    throw new SolanaError(
+      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+      {
+        actualAccountMetas: instruction.accounts.length,
+        expectedAccountMetas: 3,
+      },
+    );
   }
   let accountIndex = 0;
   const getNextAccount = () => {

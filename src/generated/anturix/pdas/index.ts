@@ -6,10 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./closePokerPoolEscrow";
 export * from "./creatorProfile";
 export * from "./escrow";
-export * from "./expertLock";
-export * from "./expertProfile";
 export * from "./opponentProfile";
 export * from "./userProfile";

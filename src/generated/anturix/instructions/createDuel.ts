@@ -7,8 +7,6 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
@@ -22,12 +20,10 @@ import {
   getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+  SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
@@ -46,13 +42,19 @@ import {
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
+import {
+  getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
+  type ResolvedInstructionAccount,
+} from "@solana/program-client-core";
 import { findCreatorProfilePda, findEscrowPda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
 import {
-  expectAddress,
-  getAccountMetaFactory,
-  type ResolvedAccount,
-} from "../shared";
+  getConditionDecoder,
+  getConditionEncoder,
+  type Condition,
+  type ConditionArgs,
+} from "../types";
 
 export const CREATE_DUEL_DISCRIMINATOR = new Uint8Array([
   49, 28, 93, 11, 75, 242, 69, 165,
@@ -97,16 +99,18 @@ export type CreateDuelInstruction<
 
 export type CreateDuelInstructionData = {
   discriminator: ReadonlyUint8Array;
-  eventId: string;
-  prediction: string;
+  priceFeedId: ReadonlyUint8Array;
+  targetPrice: bigint;
+  condition: Condition;
   stakeAmount: bigint;
   targetOpponent: Option<Address>;
   expiresAt: bigint;
 };
 
 export type CreateDuelInstructionDataArgs = {
-  eventId: string;
-  prediction: string;
+  priceFeedId: ReadonlyUint8Array;
+  targetPrice: number | bigint;
+  condition: ConditionArgs;
   stakeAmount: number | bigint;
   targetOpponent: OptionOrNullable<Address>;
   expiresAt: number | bigint;
@@ -116,8 +120,9 @@ export function getCreateDuelInstructionDataEncoder(): Encoder<CreateDuelInstruc
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["eventId", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["prediction", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
+      ["targetPrice", getI64Encoder()],
+      ["condition", getConditionEncoder()],
       ["stakeAmount", getU64Encoder()],
       ["targetOpponent", getOptionEncoder(getAddressEncoder())],
       ["expiresAt", getI64Encoder()],
@@ -129,8 +134,9 @@ export function getCreateDuelInstructionDataEncoder(): Encoder<CreateDuelInstruc
 export function getCreateDuelInstructionDataDecoder(): Decoder<CreateDuelInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["eventId", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["prediction", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
+    ["targetPrice", getI64Decoder()],
+    ["condition", getConditionDecoder()],
     ["stakeAmount", getU64Decoder()],
     ["targetOpponent", getOptionDecoder(getAddressDecoder())],
     ["expiresAt", getI64Decoder()],
@@ -159,8 +165,9 @@ export type CreateDuelAsyncInput<
   duelState: Address<TAccountDuelState>;
   escrow?: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
-  eventId: CreateDuelInstructionDataArgs["eventId"];
-  prediction: CreateDuelInstructionDataArgs["prediction"];
+  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
+  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
+  condition: CreateDuelInstructionDataArgs["condition"];
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
   targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
   expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
@@ -205,7 +212,7 @@ export async function getCreateDuelInstructionAsync<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Original args.
@@ -214,12 +221,18 @@ export async function getCreateDuelInstructionAsync<
   // Resolve default values.
   if (!accounts.creatorProfile.value) {
     accounts.creatorProfile.value = await findCreatorProfilePda({
-      creator: expectAddress(accounts.creator.value),
+      creator: getAddressFromResolvedInstructionAccount(
+        "creator",
+        accounts.creator.value,
+      ),
     });
   }
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
-      duelState: expectAddress(accounts.duelState.value),
+      duelState: getAddressFromResolvedInstructionAccount(
+        "duelState",
+        accounts.duelState.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {
@@ -230,11 +243,11 @@ export async function getCreateDuelInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.creator),
-      getAccountMeta(accounts.creatorProfile),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("creatorProfile", accounts.creatorProfile),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCreateDuelInstructionDataEncoder().encode(
       args as CreateDuelInstructionDataArgs,
@@ -262,8 +275,9 @@ export type CreateDuelInput<
   duelState: Address<TAccountDuelState>;
   escrow: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
-  eventId: CreateDuelInstructionDataArgs["eventId"];
-  prediction: CreateDuelInstructionDataArgs["prediction"];
+  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
+  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
+  condition: CreateDuelInstructionDataArgs["condition"];
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
   targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
   expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
@@ -306,7 +320,7 @@ export function getCreateDuelInstruction<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Original args.
@@ -321,11 +335,11 @@ export function getCreateDuelInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.creator),
-      getAccountMeta(accounts.creatorProfile),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("creatorProfile", accounts.creatorProfile),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCreateDuelInstructionDataEncoder().encode(
       args as CreateDuelInstructionDataArgs,
@@ -365,8 +379,13 @@ export function parseCreateDuelInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateDuelInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
-    // TODO: Coded error.
-    throw new Error("Not enough accounts");
+    throw new SolanaError(
+      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+      {
+        actualAccountMetas: instruction.accounts.length,
+        expectedAccountMetas: 5,
+      },
+    );
   }
   let accountIndex = 0;
   const getNextAccount = () => {

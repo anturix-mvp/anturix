@@ -10,12 +10,12 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+  SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
@@ -26,13 +26,17 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
+import {
+  getAccountMetaFactory,
+  type ResolvedInstructionAccount,
+} from "@solana/program-client-core";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
-import { getAccountMetaFactory, type ResolvedAccount } from "../shared";
 
 export const RESOLVE_DUEL_DISCRIMINATOR = new Uint8Array([
   213, 162, 203, 235, 151, 236, 178, 64,
@@ -46,45 +50,43 @@ export function getResolveDuelDiscriminatorBytes() {
 
 export type ResolveDuelInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
-  TAccountAdmin extends string | AccountMeta<string> = string,
+  TAccountResolver extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
-  TAccountWinnerProfile extends string | AccountMeta<string> = string,
-  TAccountLoserProfile extends string | AccountMeta<string> = string,
+  TAccountPriceUpdate extends string | AccountMeta<string> = string,
+  TAccountCreatorProfile extends string | AccountMeta<string> = string,
+  TAccountOpponentProfile extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAdmin extends string
-        ? ReadonlySignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
-        : TAccountAdmin,
+      TAccountResolver extends string
+        ? ReadonlySignerAccount<TAccountResolver> &
+            AccountSignerMeta<TAccountResolver>
+        : TAccountResolver,
       TAccountDuelState extends string
         ? WritableAccount<TAccountDuelState>
         : TAccountDuelState,
-      TAccountWinnerProfile extends string
-        ? WritableAccount<TAccountWinnerProfile>
-        : TAccountWinnerProfile,
-      TAccountLoserProfile extends string
-        ? WritableAccount<TAccountLoserProfile>
-        : TAccountLoserProfile,
+      TAccountPriceUpdate extends string
+        ? ReadonlyAccount<TAccountPriceUpdate>
+        : TAccountPriceUpdate,
+      TAccountCreatorProfile extends string
+        ? WritableAccount<TAccountCreatorProfile>
+        : TAccountCreatorProfile,
+      TAccountOpponentProfile extends string
+        ? WritableAccount<TAccountOpponentProfile>
+        : TAccountOpponentProfile,
       ...TRemainingAccounts,
     ]
   >;
 
-export type ResolveDuelInstructionData = {
-  discriminator: ReadonlyUint8Array;
-  winner: Address;
-};
+export type ResolveDuelInstructionData = { discriminator: ReadonlyUint8Array };
 
-export type ResolveDuelInstructionDataArgs = { winner: Address };
+export type ResolveDuelInstructionDataArgs = {};
 
 export function getResolveDuelInstructionDataEncoder(): FixedSizeEncoder<ResolveDuelInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["winner", getAddressEncoder()],
-    ]),
+    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
     (value) => ({ ...value, discriminator: RESOLVE_DUEL_DISCRIMINATOR }),
   );
 }
@@ -92,7 +94,6 @@ export function getResolveDuelInstructionDataEncoder(): FixedSizeEncoder<Resolve
 export function getResolveDuelInstructionDataDecoder(): FixedSizeDecoder<ResolveDuelInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["winner", getAddressDecoder()],
   ]);
 }
 
@@ -107,75 +108,78 @@ export function getResolveDuelInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type ResolveDuelInput<
-  TAccountAdmin extends string = string,
+  TAccountResolver extends string = string,
   TAccountDuelState extends string = string,
-  TAccountWinnerProfile extends string = string,
-  TAccountLoserProfile extends string = string,
+  TAccountPriceUpdate extends string = string,
+  TAccountCreatorProfile extends string = string,
+  TAccountOpponentProfile extends string = string,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
+  /** Anyone can resolve — permissionless (cranker, participant, etc.) */
+  resolver: TransactionSigner<TAccountResolver>;
   duelState: Address<TAccountDuelState>;
-  winnerProfile: Address<TAccountWinnerProfile>;
-  loserProfile: Address<TAccountLoserProfile>;
-  winner: ResolveDuelInstructionDataArgs["winner"];
+  priceUpdate: Address<TAccountPriceUpdate>;
+  creatorProfile: Address<TAccountCreatorProfile>;
+  opponentProfile: Address<TAccountOpponentProfile>;
 };
 
 export function getResolveDuelInstruction<
-  TAccountAdmin extends string,
+  TAccountResolver extends string,
   TAccountDuelState extends string,
-  TAccountWinnerProfile extends string,
-  TAccountLoserProfile extends string,
+  TAccountPriceUpdate extends string,
+  TAccountCreatorProfile extends string,
+  TAccountOpponentProfile extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
   input: ResolveDuelInput<
-    TAccountAdmin,
+    TAccountResolver,
     TAccountDuelState,
-    TAccountWinnerProfile,
-    TAccountLoserProfile
+    TAccountPriceUpdate,
+    TAccountCreatorProfile,
+    TAccountOpponentProfile
   >,
   config?: { programAddress?: TProgramAddress },
 ): ResolveDuelInstruction<
   TProgramAddress,
-  TAccountAdmin,
+  TAccountResolver,
   TAccountDuelState,
-  TAccountWinnerProfile,
-  TAccountLoserProfile
+  TAccountPriceUpdate,
+  TAccountCreatorProfile,
+  TAccountOpponentProfile
 > {
   // Program address.
   const programAddress = config?.programAddress ?? ANTURIX_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
+    resolver: { value: input.resolver ?? null, isWritable: false },
     duelState: { value: input.duelState ?? null, isWritable: true },
-    winnerProfile: { value: input.winnerProfile ?? null, isWritable: true },
-    loserProfile: { value: input.loserProfile ?? null, isWritable: true },
+    priceUpdate: { value: input.priceUpdate ?? null, isWritable: false },
+    creatorProfile: { value: input.creatorProfile ?? null, isWritable: true },
+    opponentProfile: { value: input.opponentProfile ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.admin),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.winnerProfile),
-      getAccountMeta(accounts.loserProfile),
+      getAccountMeta("resolver", accounts.resolver),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("priceUpdate", accounts.priceUpdate),
+      getAccountMeta("creatorProfile", accounts.creatorProfile),
+      getAccountMeta("opponentProfile", accounts.opponentProfile),
     ],
-    data: getResolveDuelInstructionDataEncoder().encode(
-      args as ResolveDuelInstructionDataArgs,
-    ),
+    data: getResolveDuelInstructionDataEncoder().encode({}),
     programAddress,
   } as ResolveDuelInstruction<
     TProgramAddress,
-    TAccountAdmin,
+    TAccountResolver,
     TAccountDuelState,
-    TAccountWinnerProfile,
-    TAccountLoserProfile
+    TAccountPriceUpdate,
+    TAccountCreatorProfile,
+    TAccountOpponentProfile
   >);
 }
 
@@ -185,10 +189,12 @@ export type ParsedResolveDuelInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    admin: TAccountMetas[0];
+    /** Anyone can resolve — permissionless (cranker, participant, etc.) */
+    resolver: TAccountMetas[0];
     duelState: TAccountMetas[1];
-    winnerProfile: TAccountMetas[2];
-    loserProfile: TAccountMetas[3];
+    priceUpdate: TAccountMetas[2];
+    creatorProfile: TAccountMetas[3];
+    opponentProfile: TAccountMetas[4];
   };
   data: ResolveDuelInstructionData;
 };
@@ -201,9 +207,14 @@ export function parseResolveDuelInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedResolveDuelInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
-    // TODO: Coded error.
-    throw new Error("Not enough accounts");
+  if (instruction.accounts.length < 5) {
+    throw new SolanaError(
+      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+      {
+        actualAccountMetas: instruction.accounts.length,
+        expectedAccountMetas: 5,
+      },
+    );
   }
   let accountIndex = 0;
   const getNextAccount = () => {
@@ -214,10 +225,11 @@ export function parseResolveDuelInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      admin: getNextAccount(),
+      resolver: getNextAccount(),
       duelState: getNextAccount(),
-      winnerProfile: getNextAccount(),
-      loserProfile: getNextAccount(),
+      priceUpdate: getNextAccount(),
+      creatorProfile: getNextAccount(),
+      opponentProfile: getNextAccount(),
     },
     data: getResolveDuelInstructionDataDecoder().decode(instruction.data),
   };

@@ -7,18 +7,10 @@
  */
 
 export * from "./acceptDuel";
-export * from "./buyExpertLock";
 export * from "./cancelDuel";
 export * from "./claimPrize";
-export * from "./closePokerPool";
 export * from "./createDuel";
-export * from "./createExpertLock";
-export * from "./createPokerPool";
 export * from "./expireCancelDuel";
 export * from "./forceCancelDuel";
 export * from "./initUserProfile";
-export * from "./joinPokerPool";
-export * from "./leavePokerPool";
 export * from "./resolveDuel";
-export * from "./resolveExpertLock";
-export * from "./revealExpertLock";

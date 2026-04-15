@@ -11,53 +11,80 @@ import {
   containsBytes,
   fixEncoderSize,
   getBytesEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
+  SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
+  SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
+  SolanaError,
   type Address,
+  type ClientWithRpc,
+  type ClientWithTransactionPlanning,
+  type ClientWithTransactionSending,
+  type GetAccountInfoApi,
+  type GetMultipleAccountsApi,
   type Instruction,
   type InstructionWithData,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
+  addSelfFetchFunctions,
+  addSelfPlanAndSendFunctions,
+  type SelfFetchFunctions,
+  type SelfPlanAndSendFunctions,
+} from "@solana/program-client-core";
+import {
+  getDuelStateCodec,
+  getUserProfileCodec,
+  type DuelState,
+  type DuelStateArgs,
+  type UserProfile,
+  type UserProfileArgs,
+} from "../accounts";
+import {
+  getAcceptDuelInstructionAsync,
+  getCancelDuelInstructionAsync,
+  getClaimPrizeInstructionAsync,
+  getCreateDuelInstructionAsync,
+  getExpireCancelDuelInstructionAsync,
+  getForceCancelDuelInstructionAsync,
+  getInitUserProfileInstructionAsync,
+  getResolveDuelInstruction,
   parseAcceptDuelInstruction,
-  parseBuyExpertLockInstruction,
   parseCancelDuelInstruction,
   parseClaimPrizeInstruction,
-  parseClosePokerPoolInstruction,
   parseCreateDuelInstruction,
-  parseCreateExpertLockInstruction,
-  parseCreatePokerPoolInstruction,
   parseExpireCancelDuelInstruction,
   parseForceCancelDuelInstruction,
   parseInitUserProfileInstruction,
-  parseJoinPokerPoolInstruction,
-  parseLeavePokerPoolInstruction,
   parseResolveDuelInstruction,
-  parseResolveExpertLockInstruction,
-  parseRevealExpertLockInstruction,
+  type AcceptDuelAsyncInput,
+  type CancelDuelAsyncInput,
+  type ClaimPrizeAsyncInput,
+  type CreateDuelAsyncInput,
+  type ExpireCancelDuelAsyncInput,
+  type ForceCancelDuelAsyncInput,
+  type InitUserProfileAsyncInput,
   type ParsedAcceptDuelInstruction,
-  type ParsedBuyExpertLockInstruction,
   type ParsedCancelDuelInstruction,
   type ParsedClaimPrizeInstruction,
-  type ParsedClosePokerPoolInstruction,
   type ParsedCreateDuelInstruction,
-  type ParsedCreateExpertLockInstruction,
-  type ParsedCreatePokerPoolInstruction,
   type ParsedExpireCancelDuelInstruction,
   type ParsedForceCancelDuelInstruction,
   type ParsedInitUserProfileInstruction,
-  type ParsedJoinPokerPoolInstruction,
-  type ParsedLeavePokerPoolInstruction,
   type ParsedResolveDuelInstruction,
-  type ParsedResolveExpertLockInstruction,
-  type ParsedRevealExpertLockInstruction,
+  type ResolveDuelInput,
 } from "../instructions";
+import {
+  findCreatorProfilePda,
+  findEscrowPda,
+  findOpponentProfilePda,
+  findUserProfilePda,
+} from "../pdas";
 
 export const ANTURIX_PROGRAM_ADDRESS =
   "HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9" as Address<"HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9">;
 
 export enum AnturixAccount {
   DuelState,
-  ExpertLockState,
-  PokerPool,
   UserProfile,
 }
 
@@ -80,28 +107,6 @@ export function identifyAnturixAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([173, 3, 0, 97, 73, 228, 85, 234]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixAccount.ExpertLockState;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([134, 131, 177, 14, 176, 81, 173, 187]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixAccount.PokerPool;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([32, 37, 119, 205, 179, 180, 13, 194]),
       ),
       0,
@@ -109,28 +114,21 @@ export function identifyAnturixAccount(
   ) {
     return AnturixAccount.UserProfile;
   }
-  throw new Error(
-    "The provided account could not be identified as a anturix account.",
+  throw new SolanaError(
+    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
+    { accountData: data, programName: "anturix" },
   );
 }
 
 export enum AnturixInstruction {
   AcceptDuel,
-  BuyExpertLock,
   CancelDuel,
   ClaimPrize,
-  ClosePokerPool,
   CreateDuel,
-  CreateExpertLock,
-  CreatePokerPool,
   ExpireCancelDuel,
   ForceCancelDuel,
   InitUserProfile,
-  JoinPokerPool,
-  LeavePokerPool,
   ResolveDuel,
-  ResolveExpertLock,
-  RevealExpertLock,
 }
 
 export function identifyAnturixInstruction(
@@ -147,17 +145,6 @@ export function identifyAnturixInstruction(
     )
   ) {
     return AnturixInstruction.AcceptDuel;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([36, 253, 201, 108, 187, 135, 156, 61]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.BuyExpertLock;
   }
   if (
     containsBytes(
@@ -185,45 +172,12 @@ export function identifyAnturixInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([113, 90, 114, 89, 205, 55, 166, 61]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.ClosePokerPool;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([49, 28, 93, 11, 75, 242, 69, 165]),
       ),
       0,
     )
   ) {
     return AnturixInstruction.CreateDuel;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([105, 139, 33, 213, 3, 160, 105, 221]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.CreateExpertLock;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([6, 232, 180, 26, 177, 249, 39, 41]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.CreatePokerPool;
   }
   if (
     containsBytes(
@@ -262,28 +216,6 @@ export function identifyAnturixInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([172, 158, 159, 121, 31, 243, 250, 202]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.JoinPokerPool;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([42, 105, 195, 5, 113, 15, 109, 171]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.LeavePokerPool;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([213, 162, 203, 235, 151, 236, 178, 64]),
       ),
       0,
@@ -291,30 +223,9 @@ export function identifyAnturixInstruction(
   ) {
     return AnturixInstruction.ResolveDuel;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([192, 95, 67, 38, 222, 118, 74, 42]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.ResolveExpertLock;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([221, 106, 26, 184, 74, 166, 232, 197]),
-      ),
-      0,
-    )
-  ) {
-    return AnturixInstruction.RevealExpertLock;
-  }
-  throw new Error(
-    "The provided instruction could not be identified as a anturix instruction.",
+  throw new SolanaError(
+    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
+    { instructionData: data, programName: "anturix" },
   );
 }
 
@@ -325,26 +236,14 @@ export type ParsedAnturixInstruction<
       instructionType: AnturixInstruction.AcceptDuel;
     } & ParsedAcceptDuelInstruction<TProgram>)
   | ({
-      instructionType: AnturixInstruction.BuyExpertLock;
-    } & ParsedBuyExpertLockInstruction<TProgram>)
-  | ({
       instructionType: AnturixInstruction.CancelDuel;
     } & ParsedCancelDuelInstruction<TProgram>)
   | ({
       instructionType: AnturixInstruction.ClaimPrize;
     } & ParsedClaimPrizeInstruction<TProgram>)
   | ({
-      instructionType: AnturixInstruction.ClosePokerPool;
-    } & ParsedClosePokerPoolInstruction<TProgram>)
-  | ({
       instructionType: AnturixInstruction.CreateDuel;
     } & ParsedCreateDuelInstruction<TProgram>)
-  | ({
-      instructionType: AnturixInstruction.CreateExpertLock;
-    } & ParsedCreateExpertLockInstruction<TProgram>)
-  | ({
-      instructionType: AnturixInstruction.CreatePokerPool;
-    } & ParsedCreatePokerPoolInstruction<TProgram>)
   | ({
       instructionType: AnturixInstruction.ExpireCancelDuel;
     } & ParsedExpireCancelDuelInstruction<TProgram>)
@@ -355,20 +254,8 @@ export type ParsedAnturixInstruction<
       instructionType: AnturixInstruction.InitUserProfile;
     } & ParsedInitUserProfileInstruction<TProgram>)
   | ({
-      instructionType: AnturixInstruction.JoinPokerPool;
-    } & ParsedJoinPokerPoolInstruction<TProgram>)
-  | ({
-      instructionType: AnturixInstruction.LeavePokerPool;
-    } & ParsedLeavePokerPoolInstruction<TProgram>)
-  | ({
       instructionType: AnturixInstruction.ResolveDuel;
-    } & ParsedResolveDuelInstruction<TProgram>)
-  | ({
-      instructionType: AnturixInstruction.ResolveExpertLock;
-    } & ParsedResolveExpertLockInstruction<TProgram>)
-  | ({
-      instructionType: AnturixInstruction.RevealExpertLock;
-    } & ParsedRevealExpertLockInstruction<TProgram>);
+    } & ParsedResolveDuelInstruction<TProgram>);
 
 export function parseAnturixInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -380,13 +267,6 @@ export function parseAnturixInstruction<TProgram extends string>(
       return {
         instructionType: AnturixInstruction.AcceptDuel,
         ...parseAcceptDuelInstruction(instruction),
-      };
-    }
-    case AnturixInstruction.BuyExpertLock: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.BuyExpertLock,
-        ...parseBuyExpertLockInstruction(instruction),
       };
     }
     case AnturixInstruction.CancelDuel: {
@@ -403,32 +283,11 @@ export function parseAnturixInstruction<TProgram extends string>(
         ...parseClaimPrizeInstruction(instruction),
       };
     }
-    case AnturixInstruction.ClosePokerPool: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.ClosePokerPool,
-        ...parseClosePokerPoolInstruction(instruction),
-      };
-    }
     case AnturixInstruction.CreateDuel: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: AnturixInstruction.CreateDuel,
         ...parseCreateDuelInstruction(instruction),
-      };
-    }
-    case AnturixInstruction.CreateExpertLock: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.CreateExpertLock,
-        ...parseCreateExpertLockInstruction(instruction),
-      };
-    }
-    case AnturixInstruction.CreatePokerPool: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.CreatePokerPool,
-        ...parseCreatePokerPoolInstruction(instruction),
       };
     }
     case AnturixInstruction.ExpireCancelDuel: {
@@ -452,20 +311,6 @@ export function parseAnturixInstruction<TProgram extends string>(
         ...parseInitUserProfileInstruction(instruction),
       };
     }
-    case AnturixInstruction.JoinPokerPool: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.JoinPokerPool,
-        ...parseJoinPokerPoolInstruction(instruction),
-      };
-    }
-    case AnturixInstruction.LeavePokerPool: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.LeavePokerPool,
-        ...parseLeavePokerPoolInstruction(instruction),
-      };
-    }
     case AnturixInstruction.ResolveDuel: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -473,23 +318,132 @@ export function parseAnturixInstruction<TProgram extends string>(
         ...parseResolveDuelInstruction(instruction),
       };
     }
-    case AnturixInstruction.ResolveExpertLock: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.ResolveExpertLock,
-        ...parseResolveExpertLockInstruction(instruction),
-      };
-    }
-    case AnturixInstruction.RevealExpertLock: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: AnturixInstruction.RevealExpertLock,
-        ...parseRevealExpertLockInstruction(instruction),
-      };
-    }
     default:
-      throw new Error(
-        `Unrecognized instruction type: ${instructionType as string}`,
+      throw new SolanaError(
+        SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
+        { instructionType: instructionType as string, programName: "anturix" },
       );
   }
+}
+
+export type AnturixPlugin = {
+  accounts: AnturixPluginAccounts;
+  instructions: AnturixPluginInstructions;
+  pdas: AnturixPluginPdas;
+};
+
+export type AnturixPluginAccounts = {
+  duelState: ReturnType<typeof getDuelStateCodec> &
+    SelfFetchFunctions<DuelStateArgs, DuelState>;
+  userProfile: ReturnType<typeof getUserProfileCodec> &
+    SelfFetchFunctions<UserProfileArgs, UserProfile>;
+};
+
+export type AnturixPluginInstructions = {
+  acceptDuel: (
+    input: AcceptDuelAsyncInput,
+  ) => ReturnType<typeof getAcceptDuelInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  cancelDuel: (
+    input: CancelDuelAsyncInput,
+  ) => ReturnType<typeof getCancelDuelInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  claimPrize: (
+    input: ClaimPrizeAsyncInput,
+  ) => ReturnType<typeof getClaimPrizeInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  createDuel: (
+    input: CreateDuelAsyncInput,
+  ) => ReturnType<typeof getCreateDuelInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  expireCancelDuel: (
+    input: ExpireCancelDuelAsyncInput,
+  ) => ReturnType<typeof getExpireCancelDuelInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  forceCancelDuel: (
+    input: ForceCancelDuelAsyncInput,
+  ) => ReturnType<typeof getForceCancelDuelInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initUserProfile: (
+    input: InitUserProfileAsyncInput,
+  ) => ReturnType<typeof getInitUserProfileInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  resolveDuel: (
+    input: ResolveDuelInput,
+  ) => ReturnType<typeof getResolveDuelInstruction> & SelfPlanAndSendFunctions;
+};
+
+export type AnturixPluginPdas = {
+  opponentProfile: typeof findOpponentProfilePda;
+  escrow: typeof findEscrowPda;
+  creatorProfile: typeof findCreatorProfilePda;
+  userProfile: typeof findUserProfilePda;
+};
+
+export type AnturixPluginRequirements = ClientWithRpc<
+  GetAccountInfoApi & GetMultipleAccountsApi
+> &
+  ClientWithTransactionPlanning &
+  ClientWithTransactionSending;
+
+export function anturixProgram() {
+  return <T extends AnturixPluginRequirements>(client: T) => {
+    return {
+      ...client,
+      anturix: <AnturixPlugin>{
+        accounts: {
+          duelState: addSelfFetchFunctions(client, getDuelStateCodec()),
+          userProfile: addSelfFetchFunctions(client, getUserProfileCodec()),
+        },
+        instructions: {
+          acceptDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAcceptDuelInstructionAsync(input),
+            ),
+          cancelDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCancelDuelInstructionAsync(input),
+            ),
+          claimPrize: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClaimPrizeInstructionAsync(input),
+            ),
+          createDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCreateDuelInstructionAsync(input),
+            ),
+          expireCancelDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExpireCancelDuelInstructionAsync(input),
+            ),
+          forceCancelDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getForceCancelDuelInstructionAsync(input),
+            ),
+          initUserProfile: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitUserProfileInstructionAsync(input),
+            ),
+          resolveDuel: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getResolveDuelInstruction(input),
+            ),
+        },
+        pdas: {
+          opponentProfile: findOpponentProfilePda,
+          escrow: findEscrowPda,
+          creatorProfile: findCreatorProfilePda,
+          userProfile: findUserProfilePda,
+        },
+      },
+    };
+  };
 }

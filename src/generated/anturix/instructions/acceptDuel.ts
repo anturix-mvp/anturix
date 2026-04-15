@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+  SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
@@ -30,13 +32,13 @@ import {
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
+import {
+  getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
+  type ResolvedInstructionAccount,
+} from "@solana/program-client-core";
 import { findEscrowPda, findOpponentProfilePda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
-import {
-  expectAddress,
-  getAccountMetaFactory,
-  type ResolvedAccount,
-} from "../shared";
 
 export const ACCEPT_DUEL_DISCRIMINATOR = new Uint8Array([
   80, 52, 90, 135, 172, 221, 175, 102,
@@ -163,18 +165,24 @@ export async function getAcceptDuelInstructionAsync<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
   if (!accounts.opponentProfile.value) {
     accounts.opponentProfile.value = await findOpponentProfilePda({
-      opponent: expectAddress(accounts.opponent.value),
+      opponent: getAddressFromResolvedInstructionAccount(
+        "opponent",
+        accounts.opponent.value,
+      ),
     });
   }
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
-      duelState: expectAddress(accounts.duelState.value),
+      duelState: getAddressFromResolvedInstructionAccount(
+        "duelState",
+        accounts.duelState.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {
@@ -185,11 +193,11 @@ export async function getAcceptDuelInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.opponent),
-      getAccountMeta(accounts.opponentProfile),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("opponent", accounts.opponent),
+      getAccountMeta("opponentProfile", accounts.opponentProfile),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getAcceptDuelInstructionDataEncoder().encode({}),
     programAddress,
@@ -258,7 +266,7 @@ export function getAcceptDuelInstruction<
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
-    ResolvedAccount
+    ResolvedInstructionAccount
   >;
 
   // Resolve default values.
@@ -270,11 +278,11 @@ export function getAcceptDuelInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta(accounts.opponent),
-      getAccountMeta(accounts.opponentProfile),
-      getAccountMeta(accounts.duelState),
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.systemProgram),
+      getAccountMeta("opponent", accounts.opponent),
+      getAccountMeta("opponentProfile", accounts.opponentProfile),
+      getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("escrow", accounts.escrow),
+      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getAcceptDuelInstructionDataEncoder().encode({}),
     programAddress,
@@ -313,8 +321,13 @@ export function parseAcceptDuelInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedAcceptDuelInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
-    // TODO: Coded error.
-    throw new Error("Not enough accounts");
+    throw new SolanaError(
+      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+      {
+        actualAccountMetas: instruction.accounts.length,
+        expectedAccountMetas: 5,
+      },
+    );
   }
   let accountIndex = 0;
   const getNextAccount = () => {

@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Anchor / Solana
+anchor/target/
+anchor/**/admin-keypair.json
+*-keypair.json
+!anchor/Anchor.toml

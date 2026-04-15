@@ -1,31 +1,37 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use crate::state::{UserProfile, DuelState, DuelStatus};
+use crate::state::{UserProfile, DuelState, DuelStatus, Condition};
 use crate::constants::*;
 use crate::errors::AnturixError;
 use crate::events::DuelCreated;
 
 pub fn handler(
     ctx: Context<CreateDuel>,
-    event_id: String,
-    prediction: String,
+    price_feed_id: [u8; 32],
+    target_price: i64,
+    condition: Condition,
     stake_amount: u64,
     target_opponent: Option<Pubkey>,
     expires_at: i64,
 ) -> Result<()> {
     require!(stake_amount >= MIN_STAKE, AnturixError::StakeTooLow);
-    require!(event_id.len() <= MAX_EVENT_ID_LEN, AnturixError::EventIdTooLong);
-    require!(prediction.len() <= MAX_PREDICTION_LEN, AnturixError::PredictionTooLong);
+    require!(target_price > 0, AnturixError::InvalidTargetPrice);
 
     let clock = Clock::get()?;
     require!(expires_at > clock.unix_timestamp, AnturixError::InvalidExpiry);
+    require!(
+        expires_at >= clock.unix_timestamp.checked_add(MIN_EXPIRY_DURATION).ok_or(AnturixError::Overflow)?,
+        AnturixError::InvalidExpiry
+    );
 
     let creator_profile = &mut ctx.accounts.creator_profile;
     let duel = &mut ctx.accounts.duel_state;
 
     duel.creator = ctx.accounts.creator.key();
     duel.opponent = target_opponent.unwrap_or(Pubkey::default());
-    duel.event_id = event_id.clone();
+    duel.price_feed_id = price_feed_id;
+    duel.target_price = target_price;
+    duel.condition = condition.clone();
     duel.stake_amount = stake_amount;
     duel.status = DuelStatus::Pending;
     duel.winner = None;
@@ -49,12 +55,18 @@ pub fn handler(
         .checked_add(1)
         .ok_or(AnturixError::Overflow)?;
 
+    let condition_u8 = match condition {
+        Condition::Above => 0u8,
+        Condition::Below => 1u8,
+    };
+
     emit!(DuelCreated {
         duel: duel.key(),
         creator: ctx.accounts.creator.key(),
-        event_id,
+        price_feed_id,
+        target_price,
+        condition: condition_u8,
         stake_amount,
-        prediction,
         target_opponent,
         expires_at,
     });

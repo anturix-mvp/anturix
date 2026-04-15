@@ -4,9 +4,10 @@ use anchor_lang::prelude::*;
 pub struct DuelCreated {
     pub duel: Pubkey,
     pub creator: Pubkey,
-    pub event_id: String,
+    pub price_feed_id: [u8; 32],
+    pub target_price: i64,
+    pub condition: u8, // 0 = Above, 1 = Below
     pub stake_amount: u64,
-    pub prediction: String,
     pub target_opponent: Option<Pubkey>,
     pub expires_at: i64,
 }
@@ -22,6 +23,8 @@ pub struct DuelResolved {
     pub duel: Pubkey,
     pub winner: Pubkey,
     pub loser: Pubkey,
+    pub oracle_price: i64,
+    pub oracle_exponent: i32,
 }
 
 #[event]
@@ -35,52 +38,4 @@ pub struct PrizeClaimed {
 pub struct DuelCancelled {
     pub duel: Pubkey,
     pub reason: String,
-}
-
-#[event]
-pub struct ExpertLockCreated {
-    pub lock: Pubkey,
-    pub expert: Pubkey,
-    pub event_id: String,
-    pub fee: u64,
-    pub expires_at: i64,
-}
-
-#[event]
-pub struct ExpertLockPurchased {
-    pub lock: Pubkey,
-    pub buyer: Pubkey,
-    pub fee: u64,
-}
-
-#[event]
-pub struct ExpertLockRevealed {
-    pub lock: Pubkey,
-    pub prediction: String,
-}
-
-#[event]
-pub struct ExpertLockResolved {
-    pub lock: Pubkey,
-    pub correct: bool,
-}
-
-#[event]
-pub struct PokerPoolCreated {
-    pub pool: Pubkey,
-    pub creator: Pubkey,
-    pub buy_in: u64,
-}
-
-#[event]
-pub struct PlayerJoined {
-    pub pool: Pubkey,
-    pub player: Pubkey,
-    pub seat: u8,
-}
-
-#[event]
-pub struct PlayerLeft {
-    pub pool: Pubkey,
-    pub player: Pubkey,
 }

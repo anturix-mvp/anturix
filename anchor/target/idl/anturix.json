@@ -320,6 +320,23 @@
         {
           "name": "expires_at",
           "type": "i64"
+        },
+        {
+          "name": "lower_bound",
+          "type": "i64"
+        },
+        {
+          "name": "upper_bound",
+          "type": "i64"
+        },
+        {
+          "name": "price_feed_id_b",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -505,7 +522,7 @@
         {
           "name": "resolver",
           "docs": [
-            "Anyone can resolve — permissionless (cranker, participant, etc.)"
+            "Anyone can resolve -- permissionless (cranker, participant, etc.)"
           ],
           "signer": true
         },
@@ -740,15 +757,26 @@
       "code": 6014,
       "name": "PriceConfidenceTooWide",
       "msg": "Oracle confidence interval too wide (>5%), price unreliable"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidBounds",
+      "msg": "Lower bound must be positive and less than upper bound"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidSecondFeed",
+      "msg": "Second price feed required for AssetRace"
+    },
+    {
+      "code": 6017,
+      "name": "MissingPriceAccount",
+      "msg": "Missing required price update account in remaining_accounts"
     }
   ],
   "types": [
     {
       "name": "Condition",
-      "docs": [
-        "Creator bets the condition is true, opponent bets it is false.",
-        "Strict inequality: price == target_price means opponent wins."
-      ],
       "type": {
         "kind": "enum",
         "variants": [
@@ -757,6 +785,21 @@
           },
           {
             "name": "Below"
+          },
+          {
+            "name": "Odd"
+          },
+          {
+            "name": "Even"
+          },
+          {
+            "name": "InRange"
+          },
+          {
+            "name": "OutOfRange"
+          },
+          {
+            "name": "AssetRace"
           }
         ]
       }
@@ -835,6 +878,14 @@
           },
           {
             "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "lower_bound",
+            "type": "i64"
+          },
+          {
+            "name": "upper_bound",
             "type": "i64"
           }
         ]
@@ -931,6 +982,31 @@
           {
             "name": "escrow_bump",
             "type": "u8"
+          },
+          {
+            "name": "lower_bound",
+            "type": "i64"
+          },
+          {
+            "name": "upper_bound",
+            "type": "i64"
+          },
+          {
+            "name": "price_feed_id_b",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "start_price_a",
+            "type": "i64"
+          },
+          {
+            "name": "start_price_b",
+            "type": "i64"
           }
         ]
       }

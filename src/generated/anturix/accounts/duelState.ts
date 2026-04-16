@@ -76,6 +76,11 @@ export type DuelState = {
   expiresAt: bigint;
   bump: number;
   escrowBump: number;
+  lowerBound: bigint;
+  upperBound: bigint;
+  priceFeedIdB: ReadonlyUint8Array;
+  startPriceA: bigint;
+  startPriceB: bigint;
 };
 
 export type DuelStateArgs = {
@@ -90,6 +95,11 @@ export type DuelStateArgs = {
   expiresAt: number | bigint;
   bump: number;
   escrowBump: number;
+  lowerBound: number | bigint;
+  upperBound: number | bigint;
+  priceFeedIdB: ReadonlyUint8Array;
+  startPriceA: number | bigint;
+  startPriceB: number | bigint;
 };
 
 /** Gets the encoder for {@link DuelStateArgs} account data. */
@@ -108,6 +118,11 @@ export function getDuelStateEncoder(): Encoder<DuelStateArgs> {
       ["expiresAt", getI64Encoder()],
       ["bump", getU8Encoder()],
       ["escrowBump", getU8Encoder()],
+      ["lowerBound", getI64Encoder()],
+      ["upperBound", getI64Encoder()],
+      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
+      ["startPriceA", getI64Encoder()],
+      ["startPriceB", getI64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: DUEL_STATE_DISCRIMINATOR }),
   );
@@ -128,6 +143,11 @@ export function getDuelStateDecoder(): Decoder<DuelState> {
     ["expiresAt", getI64Decoder()],
     ["bump", getU8Decoder()],
     ["escrowBump", getU8Decoder()],
+    ["lowerBound", getI64Decoder()],
+    ["upperBound", getI64Decoder()],
+    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
+    ["startPriceA", getI64Decoder()],
+    ["startPriceB", getI64Decoder()],
   ]);
 }
 

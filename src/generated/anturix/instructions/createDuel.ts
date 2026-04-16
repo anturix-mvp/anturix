@@ -105,6 +105,9 @@ export type CreateDuelInstructionData = {
   stakeAmount: bigint;
   targetOpponent: Option<Address>;
   expiresAt: bigint;
+  lowerBound: bigint;
+  upperBound: bigint;
+  priceFeedIdB: ReadonlyUint8Array;
 };
 
 export type CreateDuelInstructionDataArgs = {
@@ -114,6 +117,9 @@ export type CreateDuelInstructionDataArgs = {
   stakeAmount: number | bigint;
   targetOpponent: OptionOrNullable<Address>;
   expiresAt: number | bigint;
+  lowerBound: number | bigint;
+  upperBound: number | bigint;
+  priceFeedIdB: ReadonlyUint8Array;
 };
 
 export function getCreateDuelInstructionDataEncoder(): Encoder<CreateDuelInstructionDataArgs> {
@@ -126,6 +132,9 @@ export function getCreateDuelInstructionDataEncoder(): Encoder<CreateDuelInstruc
       ["stakeAmount", getU64Encoder()],
       ["targetOpponent", getOptionEncoder(getAddressEncoder())],
       ["expiresAt", getI64Encoder()],
+      ["lowerBound", getI64Encoder()],
+      ["upperBound", getI64Encoder()],
+      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
     ]),
     (value) => ({ ...value, discriminator: CREATE_DUEL_DISCRIMINATOR }),
   );
@@ -140,6 +149,9 @@ export function getCreateDuelInstructionDataDecoder(): Decoder<CreateDuelInstruc
     ["stakeAmount", getU64Decoder()],
     ["targetOpponent", getOptionDecoder(getAddressDecoder())],
     ["expiresAt", getI64Decoder()],
+    ["lowerBound", getI64Decoder()],
+    ["upperBound", getI64Decoder()],
+    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 
@@ -171,6 +183,9 @@ export type CreateDuelAsyncInput<
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
   targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
   expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
+  lowerBound: CreateDuelInstructionDataArgs["lowerBound"];
+  upperBound: CreateDuelInstructionDataArgs["upperBound"];
+  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
 };
 
 export async function getCreateDuelInstructionAsync<
@@ -281,6 +296,9 @@ export type CreateDuelInput<
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
   targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
   expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
+  lowerBound: CreateDuelInstructionDataArgs["lowerBound"];
+  upperBound: CreateDuelInstructionDataArgs["upperBound"];
+  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
 };
 
 export function getCreateDuelInstruction<

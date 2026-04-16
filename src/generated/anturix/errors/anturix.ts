@@ -44,15 +44,24 @@ export const ANTURIX_ERROR__INVALID_PRICE_ACCOUNT = 0x177c; // 6012
 export const ANTURIX_ERROR__INVALID_TARGET_PRICE = 0x177d; // 6013
 /** PriceConfidenceTooWide: Oracle confidence interval too wide (>5%), price unreliable */
 export const ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE = 0x177e; // 6014
+/** InvalidBounds: Lower bound must be positive and less than upper bound */
+export const ANTURIX_ERROR__INVALID_BOUNDS = 0x177f; // 6015
+/** InvalidSecondFeed: Second price feed required for AssetRace */
+export const ANTURIX_ERROR__INVALID_SECOND_FEED = 0x1780; // 6016
+/** MissingPriceAccount: Missing required price update account in remaining_accounts */
+export const ANTURIX_ERROR__MISSING_PRICE_ACCOUNT = 0x1781; // 6017
 
 export type AnturixError =
   | typeof ANTURIX_ERROR__DUEL_EXPIRED
   | typeof ANTURIX_ERROR__DUEL_NOT_EXPIRED
+  | typeof ANTURIX_ERROR__INVALID_BOUNDS
   | typeof ANTURIX_ERROR__INVALID_DUEL_STATUS
   | typeof ANTURIX_ERROR__INVALID_EXPIRY
   | typeof ANTURIX_ERROR__INVALID_PRICE_ACCOUNT
   | typeof ANTURIX_ERROR__INVALID_PRICE_FEED
+  | typeof ANTURIX_ERROR__INVALID_SECOND_FEED
   | typeof ANTURIX_ERROR__INVALID_TARGET_PRICE
+  | typeof ANTURIX_ERROR__MISSING_PRICE_ACCOUNT
   | typeof ANTURIX_ERROR__NOT_WINNER
   | typeof ANTURIX_ERROR__OVERFLOW
   | typeof ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE
@@ -67,11 +76,14 @@ if (process.env.NODE_ENV !== "production") {
   anturixErrorMessages = {
     [ANTURIX_ERROR__DUEL_EXPIRED]: `Duel has expired`,
     [ANTURIX_ERROR__DUEL_NOT_EXPIRED]: `Duel has not expired yet`,
+    [ANTURIX_ERROR__INVALID_BOUNDS]: `Lower bound must be positive and less than upper bound`,
     [ANTURIX_ERROR__INVALID_DUEL_STATUS]: `Duel not in expected status`,
     [ANTURIX_ERROR__INVALID_EXPIRY]: `Expiry must be in the future`,
     [ANTURIX_ERROR__INVALID_PRICE_ACCOUNT]: `Invalid Pyth price account (wrong owner or data)`,
     [ANTURIX_ERROR__INVALID_PRICE_FEED]: `Price feed ID does not match expected feed`,
+    [ANTURIX_ERROR__INVALID_SECOND_FEED]: `Second price feed required for AssetRace`,
     [ANTURIX_ERROR__INVALID_TARGET_PRICE]: `Target price must be positive`,
+    [ANTURIX_ERROR__MISSING_PRICE_ACCOUNT]: `Missing required price update account in remaining_accounts`,
     [ANTURIX_ERROR__NOT_WINNER]: `Not the winner`,
     [ANTURIX_ERROR__OVERFLOW]: `Arithmetic overflow`,
     [ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE]: `Oracle confidence interval too wide (>5%), price unreliable`,

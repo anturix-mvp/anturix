@@ -15,13 +15,14 @@ import {
   type FixedSizeEncoder,
 } from "@solana/kit";
 
-/**
- * Creator bets the condition is true, opponent bets it is false.
- * Strict inequality: price == target_price means opponent wins.
- */
 export enum Condition {
   Above,
   Below,
+  Odd,
+  Even,
+  InRange,
+  OutOfRange,
+  AssetRace,
 }
 
 export type ConditionArgs = Condition;

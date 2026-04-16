@@ -114,7 +114,7 @@ export type ResolveDuelInput<
   TAccountCreatorProfile extends string = string,
   TAccountOpponentProfile extends string = string,
 > = {
-  /** Anyone can resolve — permissionless (cranker, participant, etc.) */
+  /** Anyone can resolve -- permissionless (cranker, participant, etc.) */
   resolver: TransactionSigner<TAccountResolver>;
   duelState: Address<TAccountDuelState>;
   priceUpdate: Address<TAccountPriceUpdate>;
@@ -189,7 +189,7 @@ export type ParsedResolveDuelInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** Anyone can resolve — permissionless (cranker, participant, etc.) */
+    /** Anyone can resolve -- permissionless (cranker, participant, etc.) */
     resolver: TAccountMetas[0];
     duelState: TAccountMetas[1];
     priceUpdate: TAccountMetas[2];

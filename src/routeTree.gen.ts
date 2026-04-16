@@ -10,53 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as MarketplaceRouteImport } from './routes/marketplace'
-import { Route as LeaderboardRouteImport } from './routes/leaderboard'
-import { Route as FriendsRouteImport } from './routes/friends'
-import { Route as FeedRouteImport } from './routes/feed'
-import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DuelDuelIdRouteImport } from './routes/duel.$duelId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketplaceRoute = MarketplaceRouteImport.update({
-  id: '/marketplace',
-  path: '/marketplace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaderboardRoute = LeaderboardRouteImport.update({
-  id: '/leaderboard',
-  path: '/leaderboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FriendsRoute = FriendsRouteImport.update({
-  id: '/friends',
-  path: '/friends',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -64,87 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DuelDuelIdRoute = DuelDuelIdRouteImport.update({
+  id: '/duel/$duelId',
+  path: '/duel/$duelId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/feed': typeof FeedRoute
-  '/friends': typeof FriendsRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/marketplace': typeof MarketplaceRoute
-  '/profile': typeof ProfileRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/duel/$duelId': typeof DuelDuelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/feed': typeof FeedRoute
-  '/friends': typeof FriendsRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/marketplace': typeof MarketplaceRoute
-  '/profile': typeof ProfileRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/duel/$duelId': typeof DuelDuelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/feed': typeof FeedRoute
-  '/friends': typeof FriendsRoute
-  '/leaderboard': typeof LeaderboardRoute
-  '/marketplace': typeof MarketplaceRoute
-  '/profile': typeof ProfileRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/duel/$duelId': typeof DuelDuelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/calendar'
-    | '/feed'
-    | '/friends'
-    | '/leaderboard'
-    | '/marketplace'
-    | '/profile'
-    | '/search'
-    | '/settings'
+  fullPaths: '/' | '/settings' | '/duel/$duelId'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/calendar'
-    | '/feed'
-    | '/friends'
-    | '/leaderboard'
-    | '/marketplace'
-    | '/profile'
-    | '/search'
-    | '/settings'
-  id:
-    | '__root__'
-    | '/'
-    | '/calendar'
-    | '/feed'
-    | '/friends'
-    | '/leaderboard'
-    | '/marketplace'
-    | '/profile'
-    | '/search'
-    | '/settings'
+  to: '/' | '/settings' | '/duel/$duelId'
+  id: '__root__' | '/' | '/settings' | '/duel/$duelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CalendarRoute: typeof CalendarRoute
-  FeedRoute: typeof FeedRoute
-  FriendsRoute: typeof FriendsRoute
-  LeaderboardRoute: typeof LeaderboardRoute
-  MarketplaceRoute: typeof MarketplaceRoute
-  ProfileRoute: typeof ProfileRoute
-  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  DuelDuelIdRoute: typeof DuelDuelIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -156,55 +68,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/marketplace': {
-      id: '/marketplace'
-      path: '/marketplace'
-      fullPath: '/marketplace'
-      preLoaderRoute: typeof MarketplaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leaderboard': {
-      id: '/leaderboard'
-      path: '/leaderboard'
-      fullPath: '/leaderboard'
-      preLoaderRoute: typeof LeaderboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/friends': {
-      id: '/friends'
-      path: '/friends'
-      fullPath: '/friends'
-      preLoaderRoute: typeof FriendsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof FeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -212,19 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/duel/$duelId': {
+      id: '/duel/$duelId'
+      path: '/duel/$duelId'
+      fullPath: '/duel/$duelId'
+      preLoaderRoute: typeof DuelDuelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CalendarRoute: CalendarRoute,
-  FeedRoute: FeedRoute,
-  FriendsRoute: FriendsRoute,
-  LeaderboardRoute: LeaderboardRoute,
-  MarketplaceRoute: MarketplaceRoute,
-  ProfileRoute: ProfileRoute,
-  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  DuelDuelIdRoute: DuelDuelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WalletDropdown } from '@/components/wallet/WalletDropdown';
-import { useWalletContext } from '@/contexts/WalletContext';
+import { useAuth } from '@/hooks/useAuth';
 import { CreateBetModal } from '@/components/bet/CreateBetModal';
 import { XPProgressBar, StreakBadge } from '@/components/gamification/RankSystem';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,7 +11,7 @@ import { currentUser } from '@/data/mockData';
 import atxLogo from '@/assets/atx-logo.jpg';
 
 export function Navbar() {
-  const { connected } = useWalletContext();
+  const { authenticated } = useAuth();
   const [betModalOpen, setBetModalOpen] = useState(false);
 
   return (
@@ -24,30 +24,14 @@ export function Navbar() {
             <span className="font-heading font-bold text-sm tracking-wider" style={{ color: '#e0fcff', textShadow: '0 0 8px rgba(0, 255, 255, 0.6), 0 0 20px rgba(0, 255, 255, 0.3)' }}>ANTURIX</span>
           </Link>
 
-          {/* Search */}
-          <div className="hidden md:flex flex-1 max-w-md mx-auto">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="What's on your mind?"
-                className="w-full h-9 pl-9 pr-4 rounded-lg bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-              />
-            </div>
-          </div>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
-            <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span>
-            </button>
-
             <StreakBadge streak={currentUser.streak} />
 
             <Button variant="cyan" size="sm" className="hidden sm:flex gap-1.5" onClick={() => setBetModalOpen(true)}>
               <Plus className="w-4 h-4" />
-              <span>Antaler</span>
+              <span>Create Duel</span>
             </Button>
 
             <WalletDropdown />
@@ -63,7 +47,7 @@ export function Navbar() {
                         alt="avatar"
                         className={`w-8 h-8 rounded-full border-2 ${currentUser.rank === 'Legend' ? 'rank-legend-avatar border-transparent' : 'border-primary'}`}
                       />
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${connected ? 'bg-success' : 'bg-destructive'}`} />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${authenticated ? 'bg-success' : 'bg-destructive'}`} />
                     </div>
                     <div className="w-10 mt-0.5">
                       <XPProgressBar rank={currentUser.rank} size="sm" />

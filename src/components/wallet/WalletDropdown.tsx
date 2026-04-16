@@ -1,40 +1,69 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, ExternalLink, LogOut, ChevronDown, Wallet, Check } from 'lucide-react';
-import { useWalletContext } from '@/contexts/WalletContext';
-import { toast } from 'sonner';
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Copy,
+  ExternalLink,
+  LogOut,
+  ChevronDown,
+  Wallet,
+  Check,
+  RefreshCw,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { toast } from "sonner";
 
 export function WalletDropdown() {
-  const { connected, publicKey, balance, walletName, disconnect, setShowConnectModal } = useWalletContext();
+  const { authenticated, login, solanaWallet, logout } = useAuth();
+  const publicKey = solanaWallet?.address || null;
+  const walletName = "Privy Wallet";
+  const [balance, setBalance] = useState(0);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  useEffect(() => {
+    if (publicKey) {
+      const connection = new Connection(
+        "https://api.devnet.solana.com",
+        "confirmed",
+      );
+      const pubKey = new PublicKey(publicKey);
+      connection
+        .getBalance(pubKey)
+        .then((b) => setBalance(b / 1e9))
+        .catch(console.error);
+    }
+  }, [publicKey]);
 
   const copyAddress = () => {
     if (publicKey) {
       navigator.clipboard.writeText(publicKey);
       setCopied(true);
-      toast.success('Address copied!');
+      toast.success("Address copied!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  if (!connected) {
+  if (!authenticated) {
     return (
       <button
-        onClick={() => setShowConnectModal(true)}
+        onClick={() => login()}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:border-primary/60 hover:bg-primary/20 transition-all duration-200"
       >
         <Wallet className="w-4 h-4 text-primary" />
-        <span className="text-xs font-semibold text-primary hidden sm:inline">Connect</span>
+        <span className="text-xs font-semibold text-primary hidden sm:inline">
+          Login
+        </span>
       </button>
     );
   }
@@ -43,12 +72,17 @@ export function WalletDropdown() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 transition-all duration-200"
+        className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 transition-all duration-200"
       >
         <div className="w-4 h-4 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195] animate-slow-spin" />
-        <span className="text-sm font-heading font-semibold text-foreground">{balance.toFixed(1)}</span>
+        <span className="text-sm font-heading font-semibold text-foreground">
+          {balance.toFixed(1)}
+        </span>
         <span className="text-xs text-muted-foreground">SOL</span>
-        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+        <RefreshCw className="w-3 h-3 text-muted-foreground/70 opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-opacity" />
+        <ChevronDown
+          className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       <AnimatePresence>
@@ -65,16 +99,30 @@ export function WalletDropdown() {
               <div className="p-2 rounded-lg bg-muted/50 mb-2">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 rounded-full bg-success" />
-                  <span className="text-[10px] text-success font-medium">Connected · {walletName}</span>
+                  <span className="text-[10px] text-success font-medium">
+                    Connected · {walletName}
+                  </span>
                 </div>
                 <p className="font-mono text-xs text-foreground">{publicKey}</p>
-                <p className="font-heading text-lg font-bold text-foreground mt-1">{balance.toFixed(2)} <span className="text-xs text-muted-foreground">SOL</span></p>
+                <p className="font-heading text-lg font-bold text-foreground mt-1">
+                  {balance.toFixed(2)}{" "}
+                  <span className="text-xs text-muted-foreground">SOL</span>
+                </p>
               </div>
 
               {/* Actions */}
-              <button onClick={copyAddress} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left">
-                {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-                <span className="text-xs text-foreground">{copied ? 'Copied!' : 'Copy Address'}</span>
+              <button
+                onClick={copyAddress}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-success" />
+                ) : (
+                  <Copy className="w-4 h-4 text-muted-foreground" />
+                )}
+                <span className="text-xs text-foreground">
+                  {copied ? "Copied!" : "Copy Address"}
+                </span>
               </button>
 
               <a
@@ -84,17 +132,23 @@ export function WalletDropdown() {
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-foreground">View on Explorer</span>
+                <span className="text-xs text-foreground">
+                  View on Explorer
+                </span>
               </a>
 
               <div className="border-t border-border my-1" />
 
               <button
-                onClick={() => { disconnect(); setOpen(false); toast('Wallet disconnected'); }}
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                  toast("Logged out successfully");
+                }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-destructive/10 transition-colors text-left"
               >
                 <LogOut className="w-4 h-4 text-destructive" />
-                <span className="text-xs text-destructive">Disconnect</span>
+                <span className="text-xs text-destructive">Logout</span>
               </button>
             </div>
           </motion.div>

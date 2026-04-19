@@ -1,183 +1,138 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { CreateBetModal } from "@/components/bet/CreateBetModal";
-import { Swords, Zap, Share2, Shield, ArrowRight, History } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
-import {
-  loadRecentDuel,
-  type RecentDuel,
-  isPlayableRecentDuel,
-} from "@/lib/arena";
+import { createFileRoute } from '@tanstack/react-router';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { DuelCard } from '@/components/feed/DuelCard';
+import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
+import { PokerPoolCard } from '@/components/feed/PokerPoolCard';
+import { SwipeableCard } from '@/components/feed/SwipeableCard';
+import { PullToRefresh } from '@/components/feed/PullToRefresh';
+import { mockFeed, myBetsFeed, discoverFeed } from '@/data/mockData';
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
-      { title: "Anturix — Back Your Words. Bet Your SOL." },
-      {
-        name: "description",
-        content:
-          "The ultimate Private 1v1 Prediction Market on Solana. Back your words with SOL.",
-      },
+      { title: 'Anturix — Back Your Words. Bet Your SOL.' },
+      { name: 'description', content: 'The ultimate SocialFi Prediction Market on Solana. 1v1 duels, expert predictions, and poker pools.' },
+      { property: 'og:title', content: 'Anturix — Back Your Words. Bet Your SOL.' },
+      { property: 'og:description', content: 'The ultimate SocialFi Prediction Market on Solana.' },
     ],
   }),
-  component: LandingPage,
+  component: FeedPage,
 });
 
-function LandingPage() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [recentDuel, setRecentDuel] = useState<RecentDuel | null>(null);
+const tabs = ['Feed', 'My Bets', 'Discover'] as const;
+
+function FeedPage() {
+  const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Feed');
+  const [animating, setAnimating] = useState(false);
+  const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const tabRefs = useRef<Record<string, HTMLButtonElement>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  const updateIndicator = useCallback(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      const parent = el.parentElement;
+      if (parent) {
+        setIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+        });
+      }
+    }
+  }, [activeTab]);
 
   useEffect(() => {
-    setRecentDuel(loadRecentDuel());
+    updateIndicator();
+  }, [updateIndicator]);
+
+  const handleTabChange = (tab: typeof tabs[number]) => {
+    if (tab === activeTab) return;
+    setAnimating(true);
+    // After fade out, switch content and fade in
+    timeoutRef.current = setTimeout(() => {
+      setActiveTab(tab);
+      setDisplayTab(tab);
+      setAnimating(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
+
+  const activeFeed = activeTab === 'My Bets' ? myBetsFeed : activeTab === 'Discover' ? discoverFeed : mockFeed;
+
+  const tabCounts: Record<typeof tabs[number], number> = {
+    'Feed': mockFeed.length,
+    'My Bets': myBetsFeed.length,
+    'Discover': discoverFeed.length,
+  };
 
   return (
     <MainLayout>
-      <div className="hero-ambient hero-noise relative flex flex-col items-center justify-center py-10 sm:py-12 px-4 text-center max-w-5xl mx-auto space-y-10 sm:space-y-12 overflow-hidden">
-        <div className="hero-starfield" />
-        {/* Hero Section */}
-        <div className="space-y-6 relative z-10">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-[0.2em] uppercase hero-fade-up"
-            style={{ animationDelay: "80ms" }}
+      {/* Tabs */}
+      <div className="relative flex items-center gap-1 mb-6 border-b border-border">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            ref={(el) => { if (el) tabRefs.current[tab] = el; }}
+            onClick={() => handleTabChange(tab)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
+              activeTab === tab
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <Zap className="w-3 h-3 fill-primary" /> Solana Arena Live
-          </div>
-
-          <h1
-            className="text-4xl sm:text-6xl lg:text-7xl font-black font-heading tracking-tighter italic leading-tight hero-fade-up"
-            style={{ animationDelay: "150ms" }}
-          >
-            BACK YOUR WORDS.
-            <br />
-            <span className="bg-gradient-to-r from-primary via-white to-accent bg-clip-text text-transparent">
-              BET YOUR SOL.
+            {tab}
+            <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold transition-colors ${
+              activeTab === tab
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            }`}>
+              {tabCounts[tab]}
             </span>
-          </h1>
-
-          <p
-            className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto font-medium hero-fade-up"
-            style={{ animationDelay: "240ms" }}
-          >
-            No public listing. No noise. Just pure 1v1 high-stakes duels on
-            Solana. Create a duel, lock your SOL, and share the invite link with
-            your opponent.
-          </p>
-        </div>
-
-        {/* Action Button */}
+          </button>
+        ))}
+        {/* Sliding indicator */}
         <div
-          className="hero-fade-up relative z-10"
-          style={{ animationDelay: "320ms" }}
-        >
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            size="lg"
-            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
-          >
-            CREATE 1v1 DUEL 🔥
-          </Button>
-        </div>
-
-        <div
-          className="w-full overflow-hidden rounded-xl border border-border/60 bg-muted/20 hero-fade-up relative z-10"
-          style={{ animationDelay: "380ms" }}
-        >
-          <div className="ticker-track py-2.5 text-xs font-heading tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
-            ⚡ POWERED BY SOLANA · DEVNET · ZERO PLATFORM FEES · ⚡ POWERED BY
-            SOLANA · DEVNET · ZERO PLATFORM FEES ·
-          </div>
-        </div>
-
-        {recentDuel && isPlayableRecentDuel(recentDuel.state) && (
-          <div
-            className="w-full max-w-2xl mx-auto hero-fade-up relative z-10"
-            style={{ animationDelay: "420ms" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-primary/20 bg-card/80 backdrop-blur-xl p-4 sm:p-5 shadow-[0_0_40px_oklch(0.82_0.18_195/0.08)]">
-              <div className="flex items-start gap-3 text-left">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <History className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">
-                    Resume arena
-                  </p>
-                  <h2 className="text-sm sm:text-base font-black text-foreground mt-1">
-                    {recentDuel.title || "Your last duel"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
-                    {recentDuel.url}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:self-center">
-                <Button asChild variant="outline" className="gap-2">
-                  <Link
-                    to="/duel/$duelId"
-                    params={{ duelId: recentDuel.duelId }}
-                  >
-                    Open arena
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Feature Grid (Private Link focus) */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full hero-fade-up relative z-10"
-          style={{ animationDelay: "460ms" }}
-        >
-          <div className="feature-card p-6 rounded-2xl bg-muted/20 border border-border/50 text-left space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Share2 className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="font-heading font-black text-sm uppercase tracking-widest text-foreground">
-              Private Links
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Duels are hidden from the public. Only people with your unique
-              invite link can join the arena.
-            </p>
-          </div>
-
-          <div className="feature-card p-6 rounded-2xl bg-muted/20 border border-border/50 text-left space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-accent" />
-            </div>
-            <h3 className="font-heading font-black text-sm uppercase tracking-widest text-foreground">
-              On-Chain Escrow
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              SOL is safely locked in the Anturix smart contract. Winners are
-              resolved via decentralized oracles.
-            </p>
-          </div>
-
-          <div className="feature-card p-6 rounded-2xl bg-muted/20 border border-border/50 text-left space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Swords className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="font-heading font-black text-sm uppercase tracking-widest text-foreground">
-              SocialFi Native
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Built for X and Discord communities. Challenge anyone, anywhere,
-              with a simple shareable URL.
-            </p>
-          </div>
-        </div>
-
-        <CreateBetModal
-          open={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          className="absolute bottom-0 h-[3px] bg-primary rounded-full transition-all duration-300 ease-out"
+          style={{ left: indicatorStyle.left, width: indicatorStyle.width, boxShadow: '0 0 8px var(--color-primary), 0 0 20px var(--color-primary), 0 0 40px color-mix(in srgb, var(--color-primary) 50%, transparent)' }}
         />
       </div>
+
+      {/* Feed with pull-to-refresh */}
+      <PullToRefresh>
+        <div className={`space-y-4 transition-all duration-200 ${animating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
+          {activeFeed.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-lg font-medium">No hay items aquí todavía</p>
+              <p className="text-sm mt-1">¡Crea tu primera apuesta!</p>
+            </div>
+          ) : (
+            activeFeed.map((item, i) => {
+              let card: React.ReactNode;
+              switch (item.type) {
+                case 'duel':
+                  card = <DuelCard key={item.data.id} duel={item.data} index={i} />;
+                  break;
+                case 'prediction':
+                  card = <ExpertLockCard key={item.data.id} prediction={item.data} index={i} />;
+                  break;
+                case 'pool':
+                  card = <PokerPoolCard key={item.data.id} pool={item.data} index={i} />;
+                  break;
+              }
+              return (
+                <SwipeableCard key={item.data.id}>
+                  {card}
+                </SwipeableCard>
+              );
+            })
+          )}
+        </div>
+      </PullToRefresh>
     </MainLayout>
   );
 }

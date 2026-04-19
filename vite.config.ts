@@ -5,41 +5,5 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 
-export default defineConfig({
-  vite: {
-    plugins: [
-      nodePolyfills({
-        include: ["buffer", "process", "util", "crypto"],
-        globals: {
-          Buffer: true,
-          global: true,
-          process: true,
-        },
-      }),
-    ],
-    server: {
-      headers: {
-        "Content-Security-Policy":
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://auth.privy.io https://*.privy.io blob:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://auth.privy.io https://*.privy.io blob:; script-src-attr 'unsafe-inline'; connect-src 'self' https://auth.privy.io wss://auth.privy.io https://*.privy.io https://*.privy.systems wss://*.privy.systems https://api.devnet.solana.com wss://api.devnet.solana.com https://explorer-api.walletconnect.com https://*.datadoghq.com; frame-src 'self' https://auth.privy.io https://*.privy.io; worker-src 'self' blob:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com;",
-      },
-    },
-    resolve: {
-      alias: {
-        "@solana/kit": "@solana/kit",
-        "@solana-program/memo": "@solana-program/memo",
-        "@solana-program/system": "@solana-program/system",
-        "@solana-program/token": "@solana-program/token",
-      },
-    },
-    optimizeDeps: {
-      include: [
-        "@solana/kit",
-        "@solana-program/memo",
-        "@solana-program/system",
-        "@solana-program/token",
-      ],
-    },
-  },
-});
+export default defineConfig();

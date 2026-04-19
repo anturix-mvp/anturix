@@ -234,20 +234,20 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
             </div>
 
             {/* Step indicator */}
-            <div className="flex items-center gap-2 px-6 pt-6">
-              {[1, 2].map((s) => (
+            <div className="flex items-center gap-2 px-6 pt-6 mb-2">
+              {[1, 2, 3].map((s) => (
                 <div key={s} className="flex-1">
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-1 rounded-full bg-muted/30 overflow-hidden">
                     <motion.div
-                      className="h-full bg-primary rounded-full"
+                      className="h-full bg-primary rounded-full transition-all duration-500"
                       initial={false}
                       animate={{ width: step >= s ? "100%" : "0%" }}
-                      transition={{ duration: 0.35, ease: "easeInOut" }}
                     />
                   </div>
                 </div>
               ))}
             </div>
+
 
             {/* Steps */}
 
@@ -255,18 +255,86 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
               {step === 1 ? (
                 <motion.div
                   key="step1"
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-6 space-y-6"
+                >
+                  <div className="text-center space-y-2 mb-4">
+                    <h3 className="font-heading text-2xl font-black tracking-tighter italic text-foreground leading-none">
+                      CREATE YOUR DUEL
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => {
+                        setMode('public');
+                        setStep(2);
+                      }}
+                      className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-300"
+                    >
+                      <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group-hover:scale-110 transition-transform">
+                        <div className="relative">
+                          <UsersIcon className="w-10 h-10 text-cyan-400" />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyan-500 rounded-full animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <h4 className="font-heading text-lg font-black tracking-widest text-cyan-400 uppercase">
+                          PUBLIC ARENA
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
+                          Open challenge. Appears in the global feed for all users.
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setMode('private');
+                        setStep(2);
+                      }}
+                      className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300"
+                    >
+                      <div className="w-20 h-20 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 group-hover:scale-110 transition-transform">
+                        <Lock className="w-10 h-10 text-orange-400" />
+                      </div>
+                      <div className="text-center">
+                        <h4 className="font-heading text-lg font-black tracking-widest text-orange-400 uppercase">
+                          PRIVATE DUEL
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
+                          Invite-only. Generate a unique duel link for your opponent.
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleClose}
+                    className="w-full py-4 text-[10px] font-black tracking-[0.3em] text-muted-foreground hover:text-foreground uppercase transition-colors"
+                  >
+                    [ CANCEL ]
+                  </button>
+                </motion.div>
+              ) : step === 2 ? (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  exit={{ opacity: 0, x: -20 }}
                   className="p-6 space-y-8"
                 >
+
                   {/* Category Tabs */}
                   <div className="flex p-1 bg-muted/30 rounded-2xl border border-border/50">
                     {[
                       { id: 'general', label: 'GENERAL', icon: Zap, soon: false },
-                      { id: 'crypto', label: 'CRYPTO', icon: Bitcoin, soon: false },
+                      { id: 'crypto', label: 'CRYPTO', icon: Bitcoin, soon: true },
                       { id: 'sports', label: 'SPORTS', icon: TrophyIcon, soon: true },
                     ].map((tab) => (
+
 
                       <button
                         key={tab.id}
@@ -369,22 +437,31 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setStep(2)}
-                    disabled={!isStep1Valid}
-                    className="w-full py-5 rounded-2xl bg-gradient-to-r from-primary/80 to-accent/80 text-black font-black tracking-[0.2em] uppercase disabled:opacity-20 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/10"
-                  >
-                    NEXT STEP →
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex-1 py-5 rounded-2xl bg-muted/20 text-muted-foreground font-black tracking-[0.2em] uppercase hover:bg-muted/30 transition-all text-[10px]"
+                    >
+                      ← BACK
+                    </button>
+                    <button
+                      onClick={() => setStep(3)}
+                      disabled={!isStep1Valid}
+                      className="flex-[2] py-5 rounded-2xl bg-gradient-to-r from-primary/80 to-accent/80 text-black font-black tracking-[0.2em] uppercase disabled:opacity-20 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/10 text-[10px]"
+                    >
+                      NEXT STEP →
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
-                  key="step2"
+                  key="step3"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   className="p-6 space-y-6"
                 >
+
 
                   <div className="space-y-6">
                     {/* Visibility Mode */}
@@ -555,13 +632,14 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="flex-1 py-5 rounded-2xl border border-border/50 text-muted-foreground font-black tracking-widest uppercase hover:bg-muted/30 transition-all text-[10px]"
-                    >
-                      ← BACK
-                    </button>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setStep(2)}
+                        className="flex-1 py-5 rounded-2xl border border-border/50 text-muted-foreground font-black tracking-widest uppercase hover:bg-muted/30 transition-all text-[10px]"
+                      >
+                        ← BACK
+                      </button>
+
                     <button
                       onClick={handleSubmit}
                       disabled={!isValid || submitting || hasInsufficientBalance}

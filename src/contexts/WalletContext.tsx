@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Connection, PublicKey } from '@solana/web3.js';
+
 
 interface WalletState {
   connected: boolean;
@@ -30,79 +33,61 @@ export function useWalletContext() {
 const STORAGE_KEY = 'anturix_wallet_preference';
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<WalletState>({
-    connected: false,
-    publicKey: null,
-    balance: 0,
-    connecting: false,
-    walletName: null,
-  });
+  const { authenticated, solanaWallet, login, logout, ready } = useAuth();
+  const [balance, setBalance] = useState(0);
   const [showConnectPrompt, setShowConnectPrompt] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [promptAction, setPromptAction] = useState<string | undefined>();
 
-  // Auto-reconnect from localStorage
+  const refreshBalance = useCallback(async (address: string) => {
+    try {
+      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      const lamports = await connection.getBalance(new PublicKey(address));
+      setBalance(lamports / 1_000_000_000);
+    } catch (e) {
+      console.error('Failed to fetch balance:', e);
+    }
+  }, []);
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      connect(saved);
+    if (authenticated && solanaWallet?.address) {
+      refreshBalance(solanaWallet.address);
+      const interval = setInterval(() => refreshBalance(solanaWallet.address), 30000);
+      return () => clearInterval(interval);
+    } else {
+      setBalance(0);
     }
-  }, []);
+  }, [authenticated, solanaWallet?.address, refreshBalance]);
 
-  const connect = useCallback(async (walletName: string) => {
-    setState(s => ({ ...s, connecting: true }));
-    
-    // Simulate wallet connection delay
-    await new Promise(r => setTimeout(r, 1200));
-    
-    // Mock connection - in real app, use wallet adapter
-    const mockPublicKey = 'Ax7f' + Math.random().toString(36).substring(2, 6).toUpperCase() + '...' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    const mockBalance = Math.round((Math.random() * 100 + 5) * 100) / 100;
-    
-    setState({
-      connected: true,
-      publicKey: mockPublicKey,
-      balance: mockBalance,
-      connecting: false,
-      walletName,
-    });
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, walletName);
-    }
-    
-    setShowConnectModal(false);
-  }, []);
+  const connect = useCallback(async () => {
+    login();
+  }, [login]);
 
   const disconnect = useCallback(() => {
-    setState({
-      connected: false,
-      publicKey: null,
-      balance: 0,
-      connecting: false,
-      walletName: null,
-    });
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
+    logout();
+  }, [logout]);
 
-  const signTransaction = useCallback(async (tx: unknown) => {
-    await new Promise(r => setTimeout(r, 500));
-    return tx;
-  }, []);
+  const signTransaction = useCallback(async (tx: any) => {
+    if (solanaWallet?.signTransaction) {
+      return await solanaWallet.signTransaction(tx);
+    }
+    throw new Error('Wallet does not support signing');
+  }, [solanaWallet]);
 
   const requireWallet = useCallback((action?: string) => {
-    if (state.connected) return true;
+    if (authenticated && solanaWallet) return true;
     setPromptAction(action);
     setShowConnectPrompt(true);
     return false;
-  }, [state.connected]);
+  }, [authenticated, solanaWallet]);
 
   return (
     <WalletContext.Provider value={{
-      ...state,
+      connected: authenticated && !!solanaWallet,
+      publicKey: solanaWallet?.address ?? null,
+      balance,
+      connecting: !ready,
+      walletName: (solanaWallet as any)?.walletClientType ?? 'Privy',
       connect,
       disconnect,
       signTransaction,
@@ -116,3 +101,4 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     </WalletContext.Provider>
   );
 }
+

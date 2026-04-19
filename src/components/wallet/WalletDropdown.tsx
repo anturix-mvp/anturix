@@ -5,7 +5,8 @@ import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from 'sonner';
 
 export function WalletDropdown() {
-  const { connected, publicKey, balance, walletName, disconnect, setShowConnectModal } = useWalletContext();
+  const { connected, publicKey, balance, walletName, disconnect, setShowConnectModal, connect } = useWalletContext();
+
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,14 +31,15 @@ export function WalletDropdown() {
   if (!connected) {
     return (
       <button
-        onClick={() => setShowConnectModal(true)}
+        onClick={() => connect()}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:border-primary/60 hover:bg-primary/20 transition-all duration-200"
       >
         <Wallet className="w-4 h-4 text-primary" />
-        <span className="text-xs font-semibold text-primary hidden sm:inline">Connect</span>
+        <span className="text-xs font-semibold text-primary hidden sm:inline text-[10px] tracking-[0.2em] uppercase">Connect</span>
       </button>
     );
   }
+
 
   return (
     <div ref={ref} className="relative">

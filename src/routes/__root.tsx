@@ -1,3 +1,8 @@
+import { Buffer } from "buffer";
+if (typeof window !== "undefined") {
+  window.Buffer = Buffer;
+}
+
 import { Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { AnimatedOutlet } from "@/components/layout/AnimatedOutlet";
@@ -5,8 +10,11 @@ import { WalletProvider } from "@/contexts/WalletContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WalletConnectModal } from "@/components/wallet/WalletConnectModal";
 import { WalletConnectPrompt } from "@/components/wallet/WalletConnectPrompt";
+import { PrivyProvider } from "@privy-io/react-auth";
+import atxLogo from "@/assets/atx-logo.jpg";
 
 import appCss from "../styles.css?url";
+
 
 function NotFoundComponent() {
   return (
@@ -65,14 +73,31 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <ThemeProvider>
-      <WalletProvider>
-        <AnimatedOutlet />
-        <WalletConnectModal />
-        <WalletConnectPrompt />
-        <Toaster position="bottom-right" theme="dark" toastOptions={{
-          style: { background: 'oklch(0.16 0.02 260)', border: '1px solid oklch(0.3 0.02 260)', color: 'oklch(0.95 0.01 250)' },
-        }} />
-      </WalletProvider>
+      <PrivyProvider
+        appId={import.meta.env.VITE_PRIVY_APP_ID || ""}
+        config={{
+          loginMethods: ["wallet", "email", "google", "twitter"],
+          embeddedWallets: {
+            createOnLogin: "users-without-wallets",
+          },
+          externalWallets: {
+            enabled: true,
+          },
+          solanaClusters: [
+            { name: "devnet", rpcUrl: "https://api.devnet.solana.com" },
+          ],
+        }}
+      >
+        <WalletProvider>
+          <AnimatedOutlet />
+          <WalletConnectModal />
+          <WalletConnectPrompt />
+          <Toaster position="bottom-right" theme="dark" toastOptions={{
+            style: { background: 'oklch(0.16 0.02 260)', border: '1px solid oklch(0.3 0.02 260)', color: 'oklch(0.95 0.01 250)' },
+          }} />
+        </WalletProvider>
+      </PrivyProvider>
     </ThemeProvider>
   );
 }
+

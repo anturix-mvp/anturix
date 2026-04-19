@@ -10,7 +10,8 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
         <div className="flex-1 flex">
-          <main className="flex-1 max-w-[900px] mx-auto w-full px-4 py-6 pb-20 lg:pb-6">
+          <main className="flex-1 max-w-[1200px] mx-auto w-full px-4 py-6 pb-20 lg:pb-6">
+
             {children}
           </main>
           <RightSidebar />

@@ -25,10 +25,16 @@ export function RightSidebar() {
 
       {/* Top Antalers */}
       <div className="glass-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <Crown className="w-4 h-4 text-gold" />
-          <h3 className="font-heading text-sm font-semibold text-foreground">Top Antalers</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-gold" />
+            <h3 className="font-heading text-sm font-semibold text-foreground">Top Antalers</h3>
+          </div>
+          <span className="text-[7px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+            LIVE AFTER LAUNCH
+          </span>
         </div>
+
         <div className="space-y-2">
           {leaderboardUsers.slice(0, 5).map((user, i) => (
             <div key={user.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
@@ -51,11 +57,18 @@ export function RightSidebar() {
           <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
           <h3 className="font-heading text-sm font-semibold text-foreground">Live Events</h3>
         </div>
-        <div className="space-y-1.5 text-xs text-muted-foreground">
-          <p>🏀 Lakers vs Celtics — Q3 88-82</p>
-          <p>⚽ Real Madrid vs PSG — 67' 1-1</p>
-          <p>🥊 UFC 310 — Main Card Starting</p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-muted/20 border border-border/50">
+            <div className="flex flex-col gap-1">
+              <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Live Oracle Feeds coming in Phase 1
+              </span>
+              <p className="text-[10px] font-bold text-foreground">Lakers vs Celtics · MMA · UFC</p>
+            </div>
+          </div>
         </div>
+
       </div>
     </aside>
   );

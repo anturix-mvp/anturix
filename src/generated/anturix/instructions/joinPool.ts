@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU64Decoder,
+  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -37,21 +39,29 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowPda } from "../pdas";
+import { findEscrowPda, findParticipantProfilePda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
+import {
+  getSideDecoder,
+  getSideEncoder,
+  type Side,
+  type SideArgs,
+} from "../types";
 
-export const CLAIM_PRIZE_DISCRIMINATOR = new Uint8Array([
-  157, 233, 139, 121, 246, 62, 234, 235,
+export const JOIN_POOL_DISCRIMINATOR = new Uint8Array([
+  14, 65, 62, 16, 116, 17, 195, 107,
 ]);
 
-export function getClaimPrizeDiscriminatorBytes() {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(CLAIM_PRIZE_DISCRIMINATOR);
+export function getJoinPoolDiscriminatorBytes() {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(JOIN_POOL_DISCRIMINATOR);
 }
 
-export type ClaimPrizeInstruction<
+export type JoinPoolInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
-  TAccountWinner extends string | AccountMeta<string> = string,
+  TAccountParticipant extends string | AccountMeta<string> = string,
+  TAccountParticipantProfile extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
+  TAccountParticipantPosition extends string | AccountMeta<string> = string,
   TAccountEscrow extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -60,13 +70,19 @@ export type ClaimPrizeInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountWinner extends string
-        ? WritableSignerAccount<TAccountWinner> &
-            AccountSignerMeta<TAccountWinner>
-        : TAccountWinner,
+      TAccountParticipant extends string
+        ? WritableSignerAccount<TAccountParticipant> &
+            AccountSignerMeta<TAccountParticipant>
+        : TAccountParticipant,
+      TAccountParticipantProfile extends string
+        ? ReadonlyAccount<TAccountParticipantProfile>
+        : TAccountParticipantProfile,
       TAccountDuelState extends string
         ? WritableAccount<TAccountDuelState>
         : TAccountDuelState,
+      TAccountParticipantPosition extends string
+        ? WritableAccount<TAccountParticipantPosition>
+        : TAccountParticipantPosition,
       TAccountEscrow extends string
         ? WritableAccount<TAccountEscrow>
         : TAccountEscrow,
@@ -77,64 +93,89 @@ export type ClaimPrizeInstruction<
     ]
   >;
 
-export type ClaimPrizeInstructionData = { discriminator: ReadonlyUint8Array };
+export type JoinPoolInstructionData = {
+  discriminator: ReadonlyUint8Array;
+  side: Side;
+  amount: bigint;
+};
 
-export type ClaimPrizeInstructionDataArgs = {};
+export type JoinPoolInstructionDataArgs = {
+  side: SideArgs;
+  amount: number | bigint;
+};
 
-export function getClaimPrizeInstructionDataEncoder(): FixedSizeEncoder<ClaimPrizeInstructionDataArgs> {
+export function getJoinPoolInstructionDataEncoder(): FixedSizeEncoder<JoinPoolInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: CLAIM_PRIZE_DISCRIMINATOR }),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["side", getSideEncoder()],
+      ["amount", getU64Encoder()],
+    ]),
+    (value) => ({ ...value, discriminator: JOIN_POOL_DISCRIMINATOR }),
   );
 }
 
-export function getClaimPrizeInstructionDataDecoder(): FixedSizeDecoder<ClaimPrizeInstructionData> {
+export function getJoinPoolInstructionDataDecoder(): FixedSizeDecoder<JoinPoolInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["side", getSideDecoder()],
+    ["amount", getU64Decoder()],
   ]);
 }
 
-export function getClaimPrizeInstructionDataCodec(): FixedSizeCodec<
-  ClaimPrizeInstructionDataArgs,
-  ClaimPrizeInstructionData
+export function getJoinPoolInstructionDataCodec(): FixedSizeCodec<
+  JoinPoolInstructionDataArgs,
+  JoinPoolInstructionData
 > {
   return combineCodec(
-    getClaimPrizeInstructionDataEncoder(),
-    getClaimPrizeInstructionDataDecoder(),
+    getJoinPoolInstructionDataEncoder(),
+    getJoinPoolInstructionDataDecoder(),
   );
 }
 
-export type ClaimPrizeAsyncInput<
-  TAccountWinner extends string = string,
+export type JoinPoolAsyncInput<
+  TAccountParticipant extends string = string,
+  TAccountParticipantProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountParticipantPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  winner: TransactionSigner<TAccountWinner>;
+  participant: TransactionSigner<TAccountParticipant>;
+  participantProfile?: Address<TAccountParticipantProfile>;
   duelState: Address<TAccountDuelState>;
+  participantPosition: Address<TAccountParticipantPosition>;
   escrow?: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: JoinPoolInstructionDataArgs["side"];
+  amount: JoinPoolInstructionDataArgs["amount"];
 };
 
-export async function getClaimPrizeInstructionAsync<
-  TAccountWinner extends string,
+export async function getJoinPoolInstructionAsync<
+  TAccountParticipant extends string,
+  TAccountParticipantProfile extends string,
   TAccountDuelState extends string,
+  TAccountParticipantPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: ClaimPrizeAsyncInput<
-    TAccountWinner,
+  input: JoinPoolAsyncInput<
+    TAccountParticipant,
+    TAccountParticipantProfile,
     TAccountDuelState,
+    TAccountParticipantPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  ClaimPrizeInstruction<
+  JoinPoolInstruction<
     TProgramAddress,
-    TAccountWinner,
+    TAccountParticipant,
+    TAccountParticipantProfile,
     TAccountDuelState,
+    TAccountParticipantPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >
@@ -144,8 +185,16 @@ export async function getClaimPrizeInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    winner: { value: input.winner ?? null, isWritable: true },
+    participant: { value: input.participant ?? null, isWritable: true },
+    participantProfile: {
+      value: input.participantProfile ?? null,
+      isWritable: false,
+    },
     duelState: { value: input.duelState ?? null, isWritable: true },
+    participantPosition: {
+      value: input.participantPosition ?? null,
+      isWritable: true,
+    },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -154,7 +203,18 @@ export async function getClaimPrizeInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
+  if (!accounts.participantProfile.value) {
+    accounts.participantProfile.value = await findParticipantProfilePda({
+      participant: getAddressFromResolvedInstructionAccount(
+        "participant",
+        accounts.participant.value,
+      ),
+    });
+  }
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
       duelState: getAddressFromResolvedInstructionAccount(
@@ -171,52 +231,70 @@ export async function getClaimPrizeInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("winner", accounts.winner),
+      getAccountMeta("participant", accounts.participant),
+      getAccountMeta("participantProfile", accounts.participantProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("participantPosition", accounts.participantPosition),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getClaimPrizeInstructionDataEncoder().encode({}),
+    data: getJoinPoolInstructionDataEncoder().encode(
+      args as JoinPoolInstructionDataArgs,
+    ),
     programAddress,
-  } as ClaimPrizeInstruction<
+  } as JoinPoolInstruction<
     TProgramAddress,
-    TAccountWinner,
+    TAccountParticipant,
+    TAccountParticipantProfile,
     TAccountDuelState,
+    TAccountParticipantPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type ClaimPrizeInput<
-  TAccountWinner extends string = string,
+export type JoinPoolInput<
+  TAccountParticipant extends string = string,
+  TAccountParticipantProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountParticipantPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  winner: TransactionSigner<TAccountWinner>;
+  participant: TransactionSigner<TAccountParticipant>;
+  participantProfile: Address<TAccountParticipantProfile>;
   duelState: Address<TAccountDuelState>;
+  participantPosition: Address<TAccountParticipantPosition>;
   escrow: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: JoinPoolInstructionDataArgs["side"];
+  amount: JoinPoolInstructionDataArgs["amount"];
 };
 
-export function getClaimPrizeInstruction<
-  TAccountWinner extends string,
+export function getJoinPoolInstruction<
+  TAccountParticipant extends string,
+  TAccountParticipantProfile extends string,
   TAccountDuelState extends string,
+  TAccountParticipantPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: ClaimPrizeInput<
-    TAccountWinner,
+  input: JoinPoolInput<
+    TAccountParticipant,
+    TAccountParticipantProfile,
     TAccountDuelState,
+    TAccountParticipantPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): ClaimPrizeInstruction<
+): JoinPoolInstruction<
   TProgramAddress,
-  TAccountWinner,
+  TAccountParticipant,
+  TAccountParticipantProfile,
   TAccountDuelState,
+  TAccountParticipantPosition,
   TAccountEscrow,
   TAccountSystemProgram
 > {
@@ -225,8 +303,16 @@ export function getClaimPrizeInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    winner: { value: input.winner ?? null, isWritable: true },
+    participant: { value: input.participant ?? null, isWritable: true },
+    participantProfile: {
+      value: input.participantProfile ?? null,
+      isWritable: false,
+    },
     duelState: { value: input.duelState ?? null, isWritable: true },
+    participantPosition: {
+      value: input.participantPosition ?? null,
+      isWritable: true,
+    },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -234,6 +320,9 @@ export function getClaimPrizeInstruction<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
+
+  // Original args.
+  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -244,50 +333,58 @@ export function getClaimPrizeInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("winner", accounts.winner),
+      getAccountMeta("participant", accounts.participant),
+      getAccountMeta("participantProfile", accounts.participantProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("participantPosition", accounts.participantPosition),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getClaimPrizeInstructionDataEncoder().encode({}),
+    data: getJoinPoolInstructionDataEncoder().encode(
+      args as JoinPoolInstructionDataArgs,
+    ),
     programAddress,
-  } as ClaimPrizeInstruction<
+  } as JoinPoolInstruction<
     TProgramAddress,
-    TAccountWinner,
+    TAccountParticipant,
+    TAccountParticipantProfile,
     TAccountDuelState,
+    TAccountParticipantPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type ParsedClaimPrizeInstruction<
+export type ParsedJoinPoolInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    winner: TAccountMetas[0];
-    duelState: TAccountMetas[1];
-    escrow: TAccountMetas[2];
-    systemProgram: TAccountMetas[3];
+    participant: TAccountMetas[0];
+    participantProfile: TAccountMetas[1];
+    duelState: TAccountMetas[2];
+    participantPosition: TAccountMetas[3];
+    escrow: TAccountMetas[4];
+    systemProgram: TAccountMetas[5];
   };
-  data: ClaimPrizeInstructionData;
+  data: JoinPoolInstructionData;
 };
 
-export function parseClaimPrizeInstruction<
+export function parseJoinPoolInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedClaimPrizeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+): ParsedJoinPoolInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -300,11 +397,13 @@ export function parseClaimPrizeInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      winner: getNextAccount(),
+      participant: getNextAccount(),
+      participantProfile: getNextAccount(),
       duelState: getNextAccount(),
+      participantPosition: getNextAccount(),
       escrow: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getClaimPrizeInstructionDataDecoder().decode(instruction.data),
+    data: getJoinPoolInstructionDataDecoder().decode(instruction.data),
   };
 }

@@ -16,11 +16,9 @@ import {
 } from "@solana/kit";
 
 export enum DuelStatus {
-  Pending,
-  Active,
+  Open,
   Resolved,
   Cancelled,
-  Claimed,
 }
 
 export type DuelStatusArgs = DuelStatus;

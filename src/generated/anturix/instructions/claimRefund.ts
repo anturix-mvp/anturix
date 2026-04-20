@@ -37,22 +37,30 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowPda, findOpponentProfilePda } from "../pdas";
+import { findEscrowPda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
+import {
+  getSideDecoder,
+  getSideEncoder,
+  type Side,
+  type SideArgs,
+} from "../types";
 
-export const ACCEPT_DUEL_DISCRIMINATOR = new Uint8Array([
-  80, 52, 90, 135, 172, 221, 175, 102,
+export const CLAIM_REFUND_DISCRIMINATOR = new Uint8Array([
+  15, 16, 30, 161, 255, 228, 97, 60,
 ]);
 
-export function getAcceptDuelDiscriminatorBytes() {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(ACCEPT_DUEL_DISCRIMINATOR);
+export function getClaimRefundDiscriminatorBytes() {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(
+    CLAIM_REFUND_DISCRIMINATOR,
+  );
 }
 
-export type AcceptDuelInstruction<
+export type ClaimRefundInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
-  TAccountOpponent extends string | AccountMeta<string> = string,
-  TAccountOpponentProfile extends string | AccountMeta<string> = string,
+  TAccountOwner extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
+  TAccountPosition extends string | AccountMeta<string> = string,
   TAccountEscrow extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -61,16 +69,16 @@ export type AcceptDuelInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountOpponent extends string
-        ? WritableSignerAccount<TAccountOpponent> &
-            AccountSignerMeta<TAccountOpponent>
-        : TAccountOpponent,
-      TAccountOpponentProfile extends string
-        ? ReadonlyAccount<TAccountOpponentProfile>
-        : TAccountOpponentProfile,
+      TAccountOwner extends string
+        ? WritableSignerAccount<TAccountOwner> &
+            AccountSignerMeta<TAccountOwner>
+        : TAccountOwner,
       TAccountDuelState extends string
-        ? WritableAccount<TAccountDuelState>
+        ? ReadonlyAccount<TAccountDuelState>
         : TAccountDuelState,
+      TAccountPosition extends string
+        ? WritableAccount<TAccountPosition>
+        : TAccountPosition,
       TAccountEscrow extends string
         ? WritableAccount<TAccountEscrow>
         : TAccountEscrow,
@@ -81,70 +89,77 @@ export type AcceptDuelInstruction<
     ]
   >;
 
-export type AcceptDuelInstructionData = { discriminator: ReadonlyUint8Array };
+export type ClaimRefundInstructionData = {
+  discriminator: ReadonlyUint8Array;
+  side: Side;
+};
 
-export type AcceptDuelInstructionDataArgs = {};
+export type ClaimRefundInstructionDataArgs = { side: SideArgs };
 
-export function getAcceptDuelInstructionDataEncoder(): FixedSizeEncoder<AcceptDuelInstructionDataArgs> {
+export function getClaimRefundInstructionDataEncoder(): FixedSizeEncoder<ClaimRefundInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: ACCEPT_DUEL_DISCRIMINATOR }),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["side", getSideEncoder()],
+    ]),
+    (value) => ({ ...value, discriminator: CLAIM_REFUND_DISCRIMINATOR }),
   );
 }
 
-export function getAcceptDuelInstructionDataDecoder(): FixedSizeDecoder<AcceptDuelInstructionData> {
+export function getClaimRefundInstructionDataDecoder(): FixedSizeDecoder<ClaimRefundInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["side", getSideDecoder()],
   ]);
 }
 
-export function getAcceptDuelInstructionDataCodec(): FixedSizeCodec<
-  AcceptDuelInstructionDataArgs,
-  AcceptDuelInstructionData
+export function getClaimRefundInstructionDataCodec(): FixedSizeCodec<
+  ClaimRefundInstructionDataArgs,
+  ClaimRefundInstructionData
 > {
   return combineCodec(
-    getAcceptDuelInstructionDataEncoder(),
-    getAcceptDuelInstructionDataDecoder(),
+    getClaimRefundInstructionDataEncoder(),
+    getClaimRefundInstructionDataDecoder(),
   );
 }
 
-export type AcceptDuelAsyncInput<
-  TAccountOpponent extends string = string,
-  TAccountOpponentProfile extends string = string,
+export type ClaimRefundAsyncInput<
+  TAccountOwner extends string = string,
   TAccountDuelState extends string = string,
+  TAccountPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  opponent: TransactionSigner<TAccountOpponent>;
-  /** Opponent must have a profile */
-  opponentProfile?: Address<TAccountOpponentProfile>;
+  owner: TransactionSigner<TAccountOwner>;
   duelState: Address<TAccountDuelState>;
+  position: Address<TAccountPosition>;
   escrow?: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: ClaimRefundInstructionDataArgs["side"];
 };
 
-export async function getAcceptDuelInstructionAsync<
-  TAccountOpponent extends string,
-  TAccountOpponentProfile extends string,
+export async function getClaimRefundInstructionAsync<
+  TAccountOwner extends string,
   TAccountDuelState extends string,
+  TAccountPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: AcceptDuelAsyncInput<
-    TAccountOpponent,
-    TAccountOpponentProfile,
+  input: ClaimRefundAsyncInput<
+    TAccountOwner,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  AcceptDuelInstruction<
+  ClaimRefundInstruction<
     TProgramAddress,
-    TAccountOpponent,
-    TAccountOpponentProfile,
+    TAccountOwner,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >
@@ -154,12 +169,9 @@ export async function getAcceptDuelInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    opponent: { value: input.opponent ?? null, isWritable: true },
-    opponentProfile: {
-      value: input.opponentProfile ?? null,
-      isWritable: false,
-    },
-    duelState: { value: input.duelState ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: true },
+    duelState: { value: input.duelState ?? null, isWritable: false },
+    position: { value: input.position ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -168,15 +180,10 @@ export async function getAcceptDuelInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
-  if (!accounts.opponentProfile.value) {
-    accounts.opponentProfile.value = await findOpponentProfilePda({
-      opponent: getAddressFromResolvedInstructionAccount(
-        "opponent",
-        accounts.opponent.value,
-      ),
-    });
-  }
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
       duelState: getAddressFromResolvedInstructionAccount(
@@ -193,60 +200,62 @@ export async function getAcceptDuelInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("opponent", accounts.opponent),
-      getAccountMeta("opponentProfile", accounts.opponentProfile),
+      getAccountMeta("owner", accounts.owner),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("position", accounts.position),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getAcceptDuelInstructionDataEncoder().encode({}),
+    data: getClaimRefundInstructionDataEncoder().encode(
+      args as ClaimRefundInstructionDataArgs,
+    ),
     programAddress,
-  } as AcceptDuelInstruction<
+  } as ClaimRefundInstruction<
     TProgramAddress,
-    TAccountOpponent,
-    TAccountOpponentProfile,
+    TAccountOwner,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type AcceptDuelInput<
-  TAccountOpponent extends string = string,
-  TAccountOpponentProfile extends string = string,
+export type ClaimRefundInput<
+  TAccountOwner extends string = string,
   TAccountDuelState extends string = string,
+  TAccountPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  opponent: TransactionSigner<TAccountOpponent>;
-  /** Opponent must have a profile */
-  opponentProfile: Address<TAccountOpponentProfile>;
+  owner: TransactionSigner<TAccountOwner>;
   duelState: Address<TAccountDuelState>;
+  position: Address<TAccountPosition>;
   escrow: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: ClaimRefundInstructionDataArgs["side"];
 };
 
-export function getAcceptDuelInstruction<
-  TAccountOpponent extends string,
-  TAccountOpponentProfile extends string,
+export function getClaimRefundInstruction<
+  TAccountOwner extends string,
   TAccountDuelState extends string,
+  TAccountPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: AcceptDuelInput<
-    TAccountOpponent,
-    TAccountOpponentProfile,
+  input: ClaimRefundInput<
+    TAccountOwner,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): AcceptDuelInstruction<
+): ClaimRefundInstruction<
   TProgramAddress,
-  TAccountOpponent,
-  TAccountOpponentProfile,
+  TAccountOwner,
   TAccountDuelState,
+  TAccountPosition,
   TAccountEscrow,
   TAccountSystemProgram
 > {
@@ -255,12 +264,9 @@ export function getAcceptDuelInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    opponent: { value: input.opponent ?? null, isWritable: true },
-    opponentProfile: {
-      value: input.opponentProfile ?? null,
-      isWritable: false,
-    },
-    duelState: { value: input.duelState ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: true },
+    duelState: { value: input.duelState ?? null, isWritable: false },
+    position: { value: input.position ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -268,6 +274,9 @@ export function getAcceptDuelInstruction<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
+
+  // Original args.
+  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -278,48 +287,49 @@ export function getAcceptDuelInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("opponent", accounts.opponent),
-      getAccountMeta("opponentProfile", accounts.opponentProfile),
+      getAccountMeta("owner", accounts.owner),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("position", accounts.position),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getAcceptDuelInstructionDataEncoder().encode({}),
+    data: getClaimRefundInstructionDataEncoder().encode(
+      args as ClaimRefundInstructionDataArgs,
+    ),
     programAddress,
-  } as AcceptDuelInstruction<
+  } as ClaimRefundInstruction<
     TProgramAddress,
-    TAccountOpponent,
-    TAccountOpponentProfile,
+    TAccountOwner,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type ParsedAcceptDuelInstruction<
+export type ParsedClaimRefundInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    opponent: TAccountMetas[0];
-    /** Opponent must have a profile */
-    opponentProfile: TAccountMetas[1];
-    duelState: TAccountMetas[2];
+    owner: TAccountMetas[0];
+    duelState: TAccountMetas[1];
+    position: TAccountMetas[2];
     escrow: TAccountMetas[3];
     systemProgram: TAccountMetas[4];
   };
-  data: AcceptDuelInstructionData;
+  data: ClaimRefundInstructionData;
 };
 
-export function parseAcceptDuelInstruction<
+export function parseClaimRefundInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedAcceptDuelInstruction<TProgram, TAccountMetas> {
+): ParsedClaimRefundInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -338,12 +348,12 @@ export function parseAcceptDuelInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      opponent: getNextAccount(),
-      opponentProfile: getNextAccount(),
+      owner: getNextAccount(),
       duelState: getNextAccount(),
+      position: getNextAccount(),
       escrow: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getAcceptDuelInstructionDataDecoder().decode(instruction.data),
+    data: getClaimRefundInstructionDataDecoder().decode(instruction.data),
   };
 }

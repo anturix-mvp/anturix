@@ -14,12 +14,12 @@ import {
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
-export type OpponentProfileSeeds = {
-  opponent: Address;
+export type OwnerProfileSeeds = {
+  owner: Address;
 };
 
-export async function findOpponentProfilePda(
-  seeds: OpponentProfileSeeds,
+export async function findOwnerProfilePda(
+  seeds: OwnerProfileSeeds,
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
@@ -31,7 +31,7 @@ export async function findOpponentProfilePda(
       getBytesEncoder().encode(
         new Uint8Array([112, 114, 111, 102, 105, 108, 101]),
       ),
-      getAddressEncoder().encode(seeds.opponent),
+      getAddressEncoder().encode(seeds.owner),
     ],
   });
 }

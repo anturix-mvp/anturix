@@ -53,8 +53,6 @@ export type ResolveDuelInstruction<
   TAccountResolver extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
   TAccountPriceUpdate extends string | AccountMeta<string> = string,
-  TAccountCreatorProfile extends string | AccountMeta<string> = string,
-  TAccountOpponentProfile extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -70,12 +68,6 @@ export type ResolveDuelInstruction<
       TAccountPriceUpdate extends string
         ? ReadonlyAccount<TAccountPriceUpdate>
         : TAccountPriceUpdate,
-      TAccountCreatorProfile extends string
-        ? WritableAccount<TAccountCreatorProfile>
-        : TAccountCreatorProfile,
-      TAccountOpponentProfile extends string
-        ? WritableAccount<TAccountOpponentProfile>
-        : TAccountOpponentProfile,
       ...TRemainingAccounts,
     ]
   >;
@@ -111,40 +103,29 @@ export type ResolveDuelInput<
   TAccountResolver extends string = string,
   TAccountDuelState extends string = string,
   TAccountPriceUpdate extends string = string,
-  TAccountCreatorProfile extends string = string,
-  TAccountOpponentProfile extends string = string,
 > = {
-  /** Anyone can resolve -- permissionless (cranker, participant, etc.) */
   resolver: TransactionSigner<TAccountResolver>;
   duelState: Address<TAccountDuelState>;
   priceUpdate: Address<TAccountPriceUpdate>;
-  creatorProfile: Address<TAccountCreatorProfile>;
-  opponentProfile: Address<TAccountOpponentProfile>;
 };
 
 export function getResolveDuelInstruction<
   TAccountResolver extends string,
   TAccountDuelState extends string,
   TAccountPriceUpdate extends string,
-  TAccountCreatorProfile extends string,
-  TAccountOpponentProfile extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
   input: ResolveDuelInput<
     TAccountResolver,
     TAccountDuelState,
-    TAccountPriceUpdate,
-    TAccountCreatorProfile,
-    TAccountOpponentProfile
+    TAccountPriceUpdate
   >,
   config?: { programAddress?: TProgramAddress },
 ): ResolveDuelInstruction<
   TProgramAddress,
   TAccountResolver,
   TAccountDuelState,
-  TAccountPriceUpdate,
-  TAccountCreatorProfile,
-  TAccountOpponentProfile
+  TAccountPriceUpdate
 > {
   // Program address.
   const programAddress = config?.programAddress ?? ANTURIX_PROGRAM_ADDRESS;
@@ -154,8 +135,6 @@ export function getResolveDuelInstruction<
     resolver: { value: input.resolver ?? null, isWritable: false },
     duelState: { value: input.duelState ?? null, isWritable: true },
     priceUpdate: { value: input.priceUpdate ?? null, isWritable: false },
-    creatorProfile: { value: input.creatorProfile ?? null, isWritable: true },
-    opponentProfile: { value: input.opponentProfile ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -168,8 +147,6 @@ export function getResolveDuelInstruction<
       getAccountMeta("resolver", accounts.resolver),
       getAccountMeta("duelState", accounts.duelState),
       getAccountMeta("priceUpdate", accounts.priceUpdate),
-      getAccountMeta("creatorProfile", accounts.creatorProfile),
-      getAccountMeta("opponentProfile", accounts.opponentProfile),
     ],
     data: getResolveDuelInstructionDataEncoder().encode({}),
     programAddress,
@@ -177,9 +154,7 @@ export function getResolveDuelInstruction<
     TProgramAddress,
     TAccountResolver,
     TAccountDuelState,
-    TAccountPriceUpdate,
-    TAccountCreatorProfile,
-    TAccountOpponentProfile
+    TAccountPriceUpdate
   >);
 }
 
@@ -189,12 +164,9 @@ export type ParsedResolveDuelInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** Anyone can resolve -- permissionless (cranker, participant, etc.) */
     resolver: TAccountMetas[0];
     duelState: TAccountMetas[1];
     priceUpdate: TAccountMetas[2];
-    creatorProfile: TAccountMetas[3];
-    opponentProfile: TAccountMetas[4];
   };
   data: ResolveDuelInstructionData;
 };
@@ -207,12 +179,12 @@ export function parseResolveDuelInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedResolveDuelInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -228,8 +200,6 @@ export function parseResolveDuelInstruction<
       resolver: getNextAccount(),
       duelState: getNextAccount(),
       priceUpdate: getNextAccount(),
-      creatorProfile: getNextAccount(),
-      opponentProfile: getNextAccount(),
     },
     data: getResolveDuelInstructionDataDecoder().decode(instruction.data),
   };

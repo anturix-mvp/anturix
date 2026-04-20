@@ -49,10 +49,18 @@ import {
   getConditionEncoder,
   getDuelStatusDecoder,
   getDuelStatusEncoder,
+  getSideDecoder,
+  getSideEncoder,
+  getVisibilityDecoder,
+  getVisibilityEncoder,
   type Condition,
   type ConditionArgs,
   type DuelStatus,
   type DuelStatusArgs,
+  type Side,
+  type SideArgs,
+  type Visibility,
+  type VisibilityArgs,
 } from "../types";
 
 export const DUEL_STATE_DISCRIMINATOR = new Uint8Array([
@@ -66,40 +74,48 @@ export function getDuelStateDiscriminatorBytes() {
 export type DuelState = {
   discriminator: ReadonlyUint8Array;
   creator: Address;
-  opponent: Address;
-  priceFeedId: ReadonlyUint8Array;
-  targetPrice: bigint;
+  visibility: Visibility;
   condition: Condition;
-  stakeAmount: bigint;
+  priceFeedId: ReadonlyUint8Array;
+  priceFeedIdB: ReadonlyUint8Array;
+  targetPrice: bigint;
+  lowerBound: bigint;
+  upperBound: bigint;
+  startPriceA: bigint;
+  startPriceB: bigint;
+  creatorSide: Side;
+  creatorStake: bigint;
+  sideATotal: bigint;
+  sideBTotal: bigint;
   status: DuelStatus;
-  winner: Option<Address>;
+  winnerSide: Option<Side>;
+  oraclePrice: bigint;
   expiresAt: bigint;
   bump: number;
   escrowBump: number;
-  lowerBound: bigint;
-  upperBound: bigint;
-  priceFeedIdB: ReadonlyUint8Array;
-  startPriceA: bigint;
-  startPriceB: bigint;
 };
 
 export type DuelStateArgs = {
   creator: Address;
-  opponent: Address;
-  priceFeedId: ReadonlyUint8Array;
-  targetPrice: number | bigint;
+  visibility: VisibilityArgs;
   condition: ConditionArgs;
-  stakeAmount: number | bigint;
+  priceFeedId: ReadonlyUint8Array;
+  priceFeedIdB: ReadonlyUint8Array;
+  targetPrice: number | bigint;
+  lowerBound: number | bigint;
+  upperBound: number | bigint;
+  startPriceA: number | bigint;
+  startPriceB: number | bigint;
+  creatorSide: SideArgs;
+  creatorStake: number | bigint;
+  sideATotal: number | bigint;
+  sideBTotal: number | bigint;
   status: DuelStatusArgs;
-  winner: OptionOrNullable<Address>;
+  winnerSide: OptionOrNullable<SideArgs>;
+  oraclePrice: number | bigint;
   expiresAt: number | bigint;
   bump: number;
   escrowBump: number;
-  lowerBound: number | bigint;
-  upperBound: number | bigint;
-  priceFeedIdB: ReadonlyUint8Array;
-  startPriceA: number | bigint;
-  startPriceB: number | bigint;
 };
 
 /** Gets the encoder for {@link DuelStateArgs} account data. */
@@ -108,21 +124,25 @@ export function getDuelStateEncoder(): Encoder<DuelStateArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["creator", getAddressEncoder()],
-      ["opponent", getAddressEncoder()],
-      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
-      ["targetPrice", getI64Encoder()],
+      ["visibility", getVisibilityEncoder()],
       ["condition", getConditionEncoder()],
-      ["stakeAmount", getU64Encoder()],
+      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
+      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
+      ["targetPrice", getI64Encoder()],
+      ["lowerBound", getI64Encoder()],
+      ["upperBound", getI64Encoder()],
+      ["startPriceA", getI64Encoder()],
+      ["startPriceB", getI64Encoder()],
+      ["creatorSide", getSideEncoder()],
+      ["creatorStake", getU64Encoder()],
+      ["sideATotal", getU64Encoder()],
+      ["sideBTotal", getU64Encoder()],
       ["status", getDuelStatusEncoder()],
-      ["winner", getOptionEncoder(getAddressEncoder())],
+      ["winnerSide", getOptionEncoder(getSideEncoder())],
+      ["oraclePrice", getI64Encoder()],
       ["expiresAt", getI64Encoder()],
       ["bump", getU8Encoder()],
       ["escrowBump", getU8Encoder()],
-      ["lowerBound", getI64Encoder()],
-      ["upperBound", getI64Encoder()],
-      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
-      ["startPriceA", getI64Encoder()],
-      ["startPriceB", getI64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: DUEL_STATE_DISCRIMINATOR }),
   );
@@ -133,21 +153,25 @@ export function getDuelStateDecoder(): Decoder<DuelState> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["creator", getAddressDecoder()],
-    ["opponent", getAddressDecoder()],
-    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
-    ["targetPrice", getI64Decoder()],
+    ["visibility", getVisibilityDecoder()],
     ["condition", getConditionDecoder()],
-    ["stakeAmount", getU64Decoder()],
+    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
+    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
+    ["targetPrice", getI64Decoder()],
+    ["lowerBound", getI64Decoder()],
+    ["upperBound", getI64Decoder()],
+    ["startPriceA", getI64Decoder()],
+    ["startPriceB", getI64Decoder()],
+    ["creatorSide", getSideDecoder()],
+    ["creatorStake", getU64Decoder()],
+    ["sideATotal", getU64Decoder()],
+    ["sideBTotal", getU64Decoder()],
     ["status", getDuelStatusDecoder()],
-    ["winner", getOptionDecoder(getAddressDecoder())],
+    ["winnerSide", getOptionDecoder(getSideDecoder())],
+    ["oraclePrice", getI64Decoder()],
     ["expiresAt", getI64Decoder()],
     ["bump", getU8Decoder()],
     ["escrowBump", getU8Decoder()],
-    ["lowerBound", getI64Decoder()],
-    ["upperBound", getI64Decoder()],
-    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
-    ["startPriceA", getI64Decoder()],
-    ["startPriceB", getI64Decoder()],
   ]);
 }
 

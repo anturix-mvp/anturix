@@ -6,11 +6,11 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./acceptDuel";
 export * from "./cancelDuel";
-export * from "./claimPrize";
+export * from "./claimRefund";
+export * from "./claimShare";
 export * from "./createDuel";
-export * from "./expireCancelDuel";
 export * from "./forceCancelDuel";
 export * from "./initUserProfile";
+export * from "./joinPool";
 export * from "./resolveDuel";

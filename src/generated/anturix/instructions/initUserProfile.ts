@@ -37,7 +37,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findUserProfilePda } from "../pdas";
+import { findOwnerProfilePda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
 
 export const INIT_USER_PROFILE_DISCRIMINATOR = new Uint8Array([
@@ -150,7 +150,7 @@ export async function getInitUserProfileInstructionAsync<
 
   // Resolve default values.
   if (!accounts.userProfile.value) {
-    accounts.userProfile.value = await findUserProfilePda({
+    accounts.userProfile.value = await findOwnerProfilePda({
       owner: getAddressFromResolvedInstructionAccount(
         "owner",
         accounts.owner.value,

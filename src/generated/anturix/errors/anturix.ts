@@ -14,7 +14,7 @@ import {
 } from "@solana/kit";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
 
-/** StakeTooLow: Stake below minimum (0.01 SOL) */
+/** StakeTooLow: Stake below minimum */
 export const ANTURIX_ERROR__STAKE_TOO_LOW = 0x1770; // 6000
 /** InvalidDuelStatus: Duel not in expected status */
 export const ANTURIX_ERROR__INVALID_DUEL_STATUS = 0x1771; // 6001
@@ -22,76 +22,104 @@ export const ANTURIX_ERROR__INVALID_DUEL_STATUS = 0x1771; // 6001
 export const ANTURIX_ERROR__DUEL_EXPIRED = 0x1772; // 6002
 /** DuelNotExpired: Duel has not expired yet */
 export const ANTURIX_ERROR__DUEL_NOT_EXPIRED = 0x1773; // 6003
-/** WrongOpponent: Not the target opponent for this duel */
-export const ANTURIX_ERROR__WRONG_OPPONENT = 0x1774; // 6004
-/** SelfDuel: Cannot duel yourself */
-export const ANTURIX_ERROR__SELF_DUEL = 0x1775; // 6005
+/** ExactStakeRequired: Private duel requires exact stake match */
+export const ANTURIX_ERROR__EXACT_STAKE_REQUIRED = 0x1774; // 6004
+/** PrivateAlreadyMatched: Private duel already has an opponent */
+export const ANTURIX_ERROR__PRIVATE_ALREADY_MATCHED = 0x1775; // 6005
+/** WrongSide: Wrong side for this mode */
+export const ANTURIX_ERROR__WRONG_SIDE = 0x1776; // 6006
+/** SelfDuel: Cannot bet against yourself */
+export const ANTURIX_ERROR__SELF_DUEL = 0x1777; // 6007
 /** UnauthorizedAdmin: Unauthorized — not admin */
-export const ANTURIX_ERROR__UNAUTHORIZED_ADMIN = 0x1776; // 6006
-/** NotWinner: Not the winner */
-export const ANTURIX_ERROR__NOT_WINNER = 0x1777; // 6007
-/** InvalidExpiry: Expiry must be in the future */
-export const ANTURIX_ERROR__INVALID_EXPIRY = 0x1778; // 6008
+export const ANTURIX_ERROR__UNAUTHORIZED_ADMIN = 0x1778; // 6008
+/** NotOnWinningSide: Caller is not on the winning side */
+export const ANTURIX_ERROR__NOT_ON_WINNING_SIDE = 0x1779; // 6009
+/** AlreadyClaimed: Position already claimed */
+export const ANTURIX_ERROR__ALREADY_CLAIMED = 0x177a; // 6010
+/** OppositeSideNotEmpty: Opposite side has liquidity, cannot cancel */
+export const ANTURIX_ERROR__OPPOSITE_SIDE_NOT_EMPTY = 0x177b; // 6011
+/** InvalidExpiry: Expiry must be in the future and at least 60 seconds out */
+export const ANTURIX_ERROR__INVALID_EXPIRY = 0x177c; // 6012
 /** Overflow: Arithmetic overflow */
-export const ANTURIX_ERROR__OVERFLOW = 0x1779; // 6009
+export const ANTURIX_ERROR__OVERFLOW = 0x177d; // 6013
 /** InvalidPriceFeed: Price feed ID does not match expected feed */
-export const ANTURIX_ERROR__INVALID_PRICE_FEED = 0x177a; // 6010
+export const ANTURIX_ERROR__INVALID_PRICE_FEED = 0x177e; // 6014
 /** PriceTooStale: Price update is too stale */
-export const ANTURIX_ERROR__PRICE_TOO_STALE = 0x177b; // 6011
+export const ANTURIX_ERROR__PRICE_TOO_STALE = 0x177f; // 6015
 /** InvalidPriceAccount: Invalid Pyth price account (wrong owner or data) */
-export const ANTURIX_ERROR__INVALID_PRICE_ACCOUNT = 0x177c; // 6012
+export const ANTURIX_ERROR__INVALID_PRICE_ACCOUNT = 0x1780; // 6016
 /** InvalidTargetPrice: Target price must be positive */
-export const ANTURIX_ERROR__INVALID_TARGET_PRICE = 0x177d; // 6013
+export const ANTURIX_ERROR__INVALID_TARGET_PRICE = 0x1781; // 6017
 /** PriceConfidenceTooWide: Oracle confidence interval too wide (>5%), price unreliable */
-export const ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE = 0x177e; // 6014
+export const ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE = 0x1782; // 6018
 /** InvalidBounds: Lower bound must be positive and less than upper bound */
-export const ANTURIX_ERROR__INVALID_BOUNDS = 0x177f; // 6015
+export const ANTURIX_ERROR__INVALID_BOUNDS = 0x1783; // 6019
 /** InvalidSecondFeed: Second price feed required for AssetRace */
-export const ANTURIX_ERROR__INVALID_SECOND_FEED = 0x1780; // 6016
+export const ANTURIX_ERROR__INVALID_SECOND_FEED = 0x1784; // 6020
 /** MissingPriceAccount: Missing required price update account in remaining_accounts */
-export const ANTURIX_ERROR__MISSING_PRICE_ACCOUNT = 0x1781; // 6017
+export const ANTURIX_ERROR__MISSING_PRICE_ACCOUNT = 0x1785; // 6021
+/** NoWinningLiquidity: Winning side has zero liquidity */
+export const ANTURIX_ERROR__NO_WINNING_LIQUIDITY = 0x1786; // 6022
+/** PriceBeforeExpiry: Price must be published at or after duel expiry */
+export const ANTURIX_ERROR__PRICE_BEFORE_EXPIRY = 0x1787; // 6023
+/** InvalidFeedId: Price feed ID cannot be zero */
+export const ANTURIX_ERROR__INVALID_FEED_ID = 0x1788; // 6024
 
 export type AnturixError =
+  | typeof ANTURIX_ERROR__ALREADY_CLAIMED
   | typeof ANTURIX_ERROR__DUEL_EXPIRED
   | typeof ANTURIX_ERROR__DUEL_NOT_EXPIRED
+  | typeof ANTURIX_ERROR__EXACT_STAKE_REQUIRED
   | typeof ANTURIX_ERROR__INVALID_BOUNDS
   | typeof ANTURIX_ERROR__INVALID_DUEL_STATUS
   | typeof ANTURIX_ERROR__INVALID_EXPIRY
+  | typeof ANTURIX_ERROR__INVALID_FEED_ID
   | typeof ANTURIX_ERROR__INVALID_PRICE_ACCOUNT
   | typeof ANTURIX_ERROR__INVALID_PRICE_FEED
   | typeof ANTURIX_ERROR__INVALID_SECOND_FEED
   | typeof ANTURIX_ERROR__INVALID_TARGET_PRICE
   | typeof ANTURIX_ERROR__MISSING_PRICE_ACCOUNT
-  | typeof ANTURIX_ERROR__NOT_WINNER
+  | typeof ANTURIX_ERROR__NOT_ON_WINNING_SIDE
+  | typeof ANTURIX_ERROR__NO_WINNING_LIQUIDITY
+  | typeof ANTURIX_ERROR__OPPOSITE_SIDE_NOT_EMPTY
   | typeof ANTURIX_ERROR__OVERFLOW
+  | typeof ANTURIX_ERROR__PRICE_BEFORE_EXPIRY
   | typeof ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE
   | typeof ANTURIX_ERROR__PRICE_TOO_STALE
+  | typeof ANTURIX_ERROR__PRIVATE_ALREADY_MATCHED
   | typeof ANTURIX_ERROR__SELF_DUEL
   | typeof ANTURIX_ERROR__STAKE_TOO_LOW
   | typeof ANTURIX_ERROR__UNAUTHORIZED_ADMIN
-  | typeof ANTURIX_ERROR__WRONG_OPPONENT;
+  | typeof ANTURIX_ERROR__WRONG_SIDE;
 
 let anturixErrorMessages: Record<AnturixError, string> | undefined;
 if (process.env.NODE_ENV !== "production") {
   anturixErrorMessages = {
+    [ANTURIX_ERROR__ALREADY_CLAIMED]: `Position already claimed`,
     [ANTURIX_ERROR__DUEL_EXPIRED]: `Duel has expired`,
     [ANTURIX_ERROR__DUEL_NOT_EXPIRED]: `Duel has not expired yet`,
+    [ANTURIX_ERROR__EXACT_STAKE_REQUIRED]: `Private duel requires exact stake match`,
     [ANTURIX_ERROR__INVALID_BOUNDS]: `Lower bound must be positive and less than upper bound`,
     [ANTURIX_ERROR__INVALID_DUEL_STATUS]: `Duel not in expected status`,
-    [ANTURIX_ERROR__INVALID_EXPIRY]: `Expiry must be in the future`,
+    [ANTURIX_ERROR__INVALID_EXPIRY]: `Expiry must be in the future and at least 60 seconds out`,
+    [ANTURIX_ERROR__INVALID_FEED_ID]: `Price feed ID cannot be zero`,
     [ANTURIX_ERROR__INVALID_PRICE_ACCOUNT]: `Invalid Pyth price account (wrong owner or data)`,
     [ANTURIX_ERROR__INVALID_PRICE_FEED]: `Price feed ID does not match expected feed`,
     [ANTURIX_ERROR__INVALID_SECOND_FEED]: `Second price feed required for AssetRace`,
     [ANTURIX_ERROR__INVALID_TARGET_PRICE]: `Target price must be positive`,
     [ANTURIX_ERROR__MISSING_PRICE_ACCOUNT]: `Missing required price update account in remaining_accounts`,
-    [ANTURIX_ERROR__NOT_WINNER]: `Not the winner`,
+    [ANTURIX_ERROR__NOT_ON_WINNING_SIDE]: `Caller is not on the winning side`,
+    [ANTURIX_ERROR__NO_WINNING_LIQUIDITY]: `Winning side has zero liquidity`,
+    [ANTURIX_ERROR__OPPOSITE_SIDE_NOT_EMPTY]: `Opposite side has liquidity, cannot cancel`,
     [ANTURIX_ERROR__OVERFLOW]: `Arithmetic overflow`,
+    [ANTURIX_ERROR__PRICE_BEFORE_EXPIRY]: `Price must be published at or after duel expiry`,
     [ANTURIX_ERROR__PRICE_CONFIDENCE_TOO_WIDE]: `Oracle confidence interval too wide (>5%), price unreliable`,
     [ANTURIX_ERROR__PRICE_TOO_STALE]: `Price update is too stale`,
-    [ANTURIX_ERROR__SELF_DUEL]: `Cannot duel yourself`,
-    [ANTURIX_ERROR__STAKE_TOO_LOW]: `Stake below minimum (0.01 SOL)`,
+    [ANTURIX_ERROR__PRIVATE_ALREADY_MATCHED]: `Private duel already has an opponent`,
+    [ANTURIX_ERROR__SELF_DUEL]: `Cannot bet against yourself`,
+    [ANTURIX_ERROR__STAKE_TOO_LOW]: `Stake below minimum`,
     [ANTURIX_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized — not admin`,
-    [ANTURIX_ERROR__WRONG_OPPONENT]: `Not the target opponent for this duel`,
+    [ANTURIX_ERROR__WRONG_SIDE]: `Wrong side for this mode`,
   };
 }
 

@@ -8,3 +8,5 @@
 
 export * from "./condition";
 export * from "./duelStatus";
+export * from "./side";
+export * from "./visibility";

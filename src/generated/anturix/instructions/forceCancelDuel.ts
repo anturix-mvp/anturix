@@ -26,7 +26,6 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -34,10 +33,8 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowPda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
 
 export const FORCE_CANCEL_DUEL_DISCRIMINATOR = new Uint8Array([
@@ -53,12 +50,7 @@ export function getForceCancelDuelDiscriminatorBytes() {
 export type ForceCancelDuelInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
   TAccountAdmin extends string | AccountMeta<string> = string,
-  TAccountCreator extends string | AccountMeta<string> = string,
-  TAccountOpponent extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
-  TAccountEscrow extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -68,21 +60,9 @@ export type ForceCancelDuelInstruction<
         ? ReadonlySignerAccount<TAccountAdmin> &
             AccountSignerMeta<TAccountAdmin>
         : TAccountAdmin,
-      TAccountCreator extends string
-        ? WritableAccount<TAccountCreator>
-        : TAccountCreator,
-      TAccountOpponent extends string
-        ? WritableAccount<TAccountOpponent>
-        : TAccountOpponent,
       TAccountDuelState extends string
         ? WritableAccount<TAccountDuelState>
         : TAccountDuelState,
-      TAccountEscrow extends string
-        ? WritableAccount<TAccountEscrow>
-        : TAccountEscrow,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -116,149 +96,25 @@ export function getForceCancelDuelInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type ForceCancelDuelAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountCreator extends string = string,
-  TAccountOpponent extends string = string,
-  TAccountDuelState extends string = string,
-  TAccountEscrow extends string = string,
-  TAccountSystemProgram extends string = string,
-> = {
-  admin: TransactionSigner<TAccountAdmin>;
-  creator: Address<TAccountCreator>;
-  /** Pending duels have opponent = Pubkey::default() which is not system-owned. */
-  opponent: Address<TAccountOpponent>;
-  duelState: Address<TAccountDuelState>;
-  escrow?: Address<TAccountEscrow>;
-  systemProgram?: Address<TAccountSystemProgram>;
-};
-
-export async function getForceCancelDuelInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountCreator extends string,
-  TAccountOpponent extends string,
-  TAccountDuelState extends string,
-  TAccountEscrow extends string,
-  TAccountSystemProgram extends string,
-  TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
->(
-  input: ForceCancelDuelAsyncInput<
-    TAccountAdmin,
-    TAccountCreator,
-    TAccountOpponent,
-    TAccountDuelState,
-    TAccountEscrow,
-    TAccountSystemProgram
-  >,
-  config?: { programAddress?: TProgramAddress },
-): Promise<
-  ForceCancelDuelInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountCreator,
-    TAccountOpponent,
-    TAccountDuelState,
-    TAccountEscrow,
-    TAccountSystemProgram
-  >
-> {
-  // Program address.
-  const programAddress = config?.programAddress ?? ANTURIX_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    creator: { value: input.creator ?? null, isWritable: true },
-    opponent: { value: input.opponent ?? null, isWritable: true },
-    duelState: { value: input.duelState ?? null, isWritable: true },
-    escrow: { value: input.escrow ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Resolve default values.
-  if (!accounts.escrow.value) {
-    accounts.escrow.value = await findEscrowPda({
-      duelState: getAddressFromResolvedInstructionAccount(
-        "duelState",
-        accounts.duelState.value,
-      ),
-    });
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("admin", accounts.admin),
-      getAccountMeta("creator", accounts.creator),
-      getAccountMeta("opponent", accounts.opponent),
-      getAccountMeta("duelState", accounts.duelState),
-      getAccountMeta("escrow", accounts.escrow),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-    ],
-    data: getForceCancelDuelInstructionDataEncoder().encode({}),
-    programAddress,
-  } as ForceCancelDuelInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountCreator,
-    TAccountOpponent,
-    TAccountDuelState,
-    TAccountEscrow,
-    TAccountSystemProgram
-  >);
-}
-
 export type ForceCancelDuelInput<
   TAccountAdmin extends string = string,
-  TAccountCreator extends string = string,
-  TAccountOpponent extends string = string,
   TAccountDuelState extends string = string,
-  TAccountEscrow extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
-  creator: Address<TAccountCreator>;
-  /** Pending duels have opponent = Pubkey::default() which is not system-owned. */
-  opponent: Address<TAccountOpponent>;
   duelState: Address<TAccountDuelState>;
-  escrow: Address<TAccountEscrow>;
-  systemProgram?: Address<TAccountSystemProgram>;
 };
 
 export function getForceCancelDuelInstruction<
   TAccountAdmin extends string,
-  TAccountCreator extends string,
-  TAccountOpponent extends string,
   TAccountDuelState extends string,
-  TAccountEscrow extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: ForceCancelDuelInput<
-    TAccountAdmin,
-    TAccountCreator,
-    TAccountOpponent,
-    TAccountDuelState,
-    TAccountEscrow,
-    TAccountSystemProgram
-  >,
+  input: ForceCancelDuelInput<TAccountAdmin, TAccountDuelState>,
   config?: { programAddress?: TProgramAddress },
 ): ForceCancelDuelInstruction<
   TProgramAddress,
   TAccountAdmin,
-  TAccountCreator,
-  TAccountOpponent,
-  TAccountDuelState,
-  TAccountEscrow,
-  TAccountSystemProgram
+  TAccountDuelState
 > {
   // Program address.
   const programAddress = config?.programAddress ?? ANTURIX_PROGRAM_ADDRESS;
@@ -266,43 +122,25 @@ export function getForceCancelDuelInstruction<
   // Original accounts.
   const originalAccounts = {
     admin: { value: input.admin ?? null, isWritable: false },
-    creator: { value: input.creator ?? null, isWritable: true },
-    opponent: { value: input.opponent ?? null, isWritable: true },
     duelState: { value: input.duelState ?? null, isWritable: true },
-    escrow: { value: input.escrow ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  // Resolve default values.
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
-      getAccountMeta("creator", accounts.creator),
-      getAccountMeta("opponent", accounts.opponent),
       getAccountMeta("duelState", accounts.duelState),
-      getAccountMeta("escrow", accounts.escrow),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getForceCancelDuelInstructionDataEncoder().encode({}),
     programAddress,
   } as ForceCancelDuelInstruction<
     TProgramAddress,
     TAccountAdmin,
-    TAccountCreator,
-    TAccountOpponent,
-    TAccountDuelState,
-    TAccountEscrow,
-    TAccountSystemProgram
+    TAccountDuelState
   >);
 }
 
@@ -313,12 +151,7 @@ export type ParsedForceCancelDuelInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     admin: TAccountMetas[0];
-    creator: TAccountMetas[1];
-    /** Pending duels have opponent = Pubkey::default() which is not system-owned. */
-    opponent: TAccountMetas[2];
-    duelState: TAccountMetas[3];
-    escrow: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    duelState: TAccountMetas[1];
   };
   data: ForceCancelDuelInstructionData;
 };
@@ -331,12 +164,12 @@ export function parseForceCancelDuelInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedForceCancelDuelInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 2,
       },
     );
   }
@@ -348,14 +181,7 @@ export function parseForceCancelDuelInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: {
-      admin: getNextAccount(),
-      creator: getNextAccount(),
-      opponent: getNextAccount(),
-      duelState: getNextAccount(),
-      escrow: getNextAccount(),
-      systemProgram: getNextAccount(),
-    },
+    accounts: { admin: getNextAccount(), duelState: getNextAccount() },
     data: getForceCancelDuelInstructionDataDecoder().decode(instruction.data),
   };
 }

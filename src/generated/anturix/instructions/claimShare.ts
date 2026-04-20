@@ -27,34 +27,39 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowPda } from "../pdas";
+import { findEscrowPda, findOwnerProfilePda } from "../pdas";
 import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
+import {
+  getSideDecoder,
+  getSideEncoder,
+  type Side,
+  type SideArgs,
+} from "../types";
 
-export const EXPIRE_CANCEL_DUEL_DISCRIMINATOR = new Uint8Array([
-  2, 255, 15, 225, 42, 103, 84, 230,
+export const CLAIM_SHARE_DISCRIMINATOR = new Uint8Array([
+  42, 18, 161, 15, 129, 155, 240, 52,
 ]);
 
-export function getExpireCancelDuelDiscriminatorBytes() {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    EXPIRE_CANCEL_DUEL_DISCRIMINATOR,
-  );
+export function getClaimShareDiscriminatorBytes() {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CLAIM_SHARE_DISCRIMINATOR);
 }
 
-export type ExpireCancelDuelInstruction<
+export type ClaimShareInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
-  TAccountCranker extends string | AccountMeta<string> = string,
-  TAccountCreator extends string | AccountMeta<string> = string,
+  TAccountOwner extends string | AccountMeta<string> = string,
+  TAccountOwnerProfile extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
+  TAccountPosition extends string | AccountMeta<string> = string,
   TAccountEscrow extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -63,16 +68,19 @@ export type ExpireCancelDuelInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountCranker extends string
-        ? ReadonlySignerAccount<TAccountCranker> &
-            AccountSignerMeta<TAccountCranker>
-        : TAccountCranker,
-      TAccountCreator extends string
-        ? WritableAccount<TAccountCreator>
-        : TAccountCreator,
+      TAccountOwner extends string
+        ? WritableSignerAccount<TAccountOwner> &
+            AccountSignerMeta<TAccountOwner>
+        : TAccountOwner,
+      TAccountOwnerProfile extends string
+        ? WritableAccount<TAccountOwnerProfile>
+        : TAccountOwnerProfile,
       TAccountDuelState extends string
-        ? WritableAccount<TAccountDuelState>
+        ? ReadonlyAccount<TAccountDuelState>
         : TAccountDuelState,
+      TAccountPosition extends string
+        ? WritableAccount<TAccountPosition>
+        : TAccountPosition,
       TAccountEscrow extends string
         ? WritableAccount<TAccountEscrow>
         : TAccountEscrow,
@@ -83,71 +91,82 @@ export type ExpireCancelDuelInstruction<
     ]
   >;
 
-export type ExpireCancelDuelInstructionData = {
+export type ClaimShareInstructionData = {
   discriminator: ReadonlyUint8Array;
+  side: Side;
 };
 
-export type ExpireCancelDuelInstructionDataArgs = {};
+export type ClaimShareInstructionDataArgs = { side: SideArgs };
 
-export function getExpireCancelDuelInstructionDataEncoder(): FixedSizeEncoder<ExpireCancelDuelInstructionDataArgs> {
+export function getClaimShareInstructionDataEncoder(): FixedSizeEncoder<ClaimShareInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: EXPIRE_CANCEL_DUEL_DISCRIMINATOR }),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["side", getSideEncoder()],
+    ]),
+    (value) => ({ ...value, discriminator: CLAIM_SHARE_DISCRIMINATOR }),
   );
 }
 
-export function getExpireCancelDuelInstructionDataDecoder(): FixedSizeDecoder<ExpireCancelDuelInstructionData> {
+export function getClaimShareInstructionDataDecoder(): FixedSizeDecoder<ClaimShareInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["side", getSideDecoder()],
   ]);
 }
 
-export function getExpireCancelDuelInstructionDataCodec(): FixedSizeCodec<
-  ExpireCancelDuelInstructionDataArgs,
-  ExpireCancelDuelInstructionData
+export function getClaimShareInstructionDataCodec(): FixedSizeCodec<
+  ClaimShareInstructionDataArgs,
+  ClaimShareInstructionData
 > {
   return combineCodec(
-    getExpireCancelDuelInstructionDataEncoder(),
-    getExpireCancelDuelInstructionDataDecoder(),
+    getClaimShareInstructionDataEncoder(),
+    getClaimShareInstructionDataDecoder(),
   );
 }
 
-export type ExpireCancelDuelAsyncInput<
-  TAccountCranker extends string = string,
-  TAccountCreator extends string = string,
+export type ClaimShareAsyncInput<
+  TAccountOwner extends string = string,
+  TAccountOwnerProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  cranker: TransactionSigner<TAccountCranker>;
-  creator: Address<TAccountCreator>;
+  owner: TransactionSigner<TAccountOwner>;
+  ownerProfile?: Address<TAccountOwnerProfile>;
   duelState: Address<TAccountDuelState>;
+  position: Address<TAccountPosition>;
   escrow?: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: ClaimShareInstructionDataArgs["side"];
 };
 
-export async function getExpireCancelDuelInstructionAsync<
-  TAccountCranker extends string,
-  TAccountCreator extends string,
+export async function getClaimShareInstructionAsync<
+  TAccountOwner extends string,
+  TAccountOwnerProfile extends string,
   TAccountDuelState extends string,
+  TAccountPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: ExpireCancelDuelAsyncInput<
-    TAccountCranker,
-    TAccountCreator,
+  input: ClaimShareAsyncInput<
+    TAccountOwner,
+    TAccountOwnerProfile,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  ExpireCancelDuelInstruction<
+  ClaimShareInstruction<
     TProgramAddress,
-    TAccountCranker,
-    TAccountCreator,
+    TAccountOwner,
+    TAccountOwnerProfile,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >
@@ -157,9 +176,10 @@ export async function getExpireCancelDuelInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    cranker: { value: input.cranker ?? null, isWritable: false },
-    creator: { value: input.creator ?? null, isWritable: true },
-    duelState: { value: input.duelState ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: true },
+    ownerProfile: { value: input.ownerProfile ?? null, isWritable: true },
+    duelState: { value: input.duelState ?? null, isWritable: false },
+    position: { value: input.position ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -168,7 +188,18 @@ export async function getExpireCancelDuelInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
+  if (!accounts.ownerProfile.value) {
+    accounts.ownerProfile.value = await findOwnerProfilePda({
+      owner: getAddressFromResolvedInstructionAccount(
+        "owner",
+        accounts.owner.value,
+      ),
+    });
+  }
   if (!accounts.escrow.value) {
     accounts.escrow.value = await findEscrowPda({
       duelState: getAddressFromResolvedInstructionAccount(
@@ -185,59 +216,69 @@ export async function getExpireCancelDuelInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("cranker", accounts.cranker),
-      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("ownerProfile", accounts.ownerProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("position", accounts.position),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getExpireCancelDuelInstructionDataEncoder().encode({}),
+    data: getClaimShareInstructionDataEncoder().encode(
+      args as ClaimShareInstructionDataArgs,
+    ),
     programAddress,
-  } as ExpireCancelDuelInstruction<
+  } as ClaimShareInstruction<
     TProgramAddress,
-    TAccountCranker,
-    TAccountCreator,
+    TAccountOwner,
+    TAccountOwnerProfile,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type ExpireCancelDuelInput<
-  TAccountCranker extends string = string,
-  TAccountCreator extends string = string,
+export type ClaimShareInput<
+  TAccountOwner extends string = string,
+  TAccountOwnerProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  cranker: TransactionSigner<TAccountCranker>;
-  creator: Address<TAccountCreator>;
+  owner: TransactionSigner<TAccountOwner>;
+  ownerProfile: Address<TAccountOwnerProfile>;
   duelState: Address<TAccountDuelState>;
+  position: Address<TAccountPosition>;
   escrow: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
+  side: ClaimShareInstructionDataArgs["side"];
 };
 
-export function getExpireCancelDuelInstruction<
-  TAccountCranker extends string,
-  TAccountCreator extends string,
+export function getClaimShareInstruction<
+  TAccountOwner extends string,
+  TAccountOwnerProfile extends string,
   TAccountDuelState extends string,
+  TAccountPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
 >(
-  input: ExpireCancelDuelInput<
-    TAccountCranker,
-    TAccountCreator,
+  input: ClaimShareInput<
+    TAccountOwner,
+    TAccountOwnerProfile,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): ExpireCancelDuelInstruction<
+): ClaimShareInstruction<
   TProgramAddress,
-  TAccountCranker,
-  TAccountCreator,
+  TAccountOwner,
+  TAccountOwnerProfile,
   TAccountDuelState,
+  TAccountPosition,
   TAccountEscrow,
   TAccountSystemProgram
 > {
@@ -246,9 +287,10 @@ export function getExpireCancelDuelInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    cranker: { value: input.cranker ?? null, isWritable: false },
-    creator: { value: input.creator ?? null, isWritable: true },
-    duelState: { value: input.duelState ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: true },
+    ownerProfile: { value: input.ownerProfile ?? null, isWritable: true },
+    duelState: { value: input.duelState ?? null, isWritable: false },
+    position: { value: input.position ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -256,6 +298,9 @@ export function getExpireCancelDuelInstruction<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
+
+  // Original args.
+  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -266,53 +311,58 @@ export function getExpireCancelDuelInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("cranker", accounts.cranker),
-      getAccountMeta("creator", accounts.creator),
+      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("ownerProfile", accounts.ownerProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("position", accounts.position),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getExpireCancelDuelInstructionDataEncoder().encode({}),
+    data: getClaimShareInstructionDataEncoder().encode(
+      args as ClaimShareInstructionDataArgs,
+    ),
     programAddress,
-  } as ExpireCancelDuelInstruction<
+  } as ClaimShareInstruction<
     TProgramAddress,
-    TAccountCranker,
-    TAccountCreator,
+    TAccountOwner,
+    TAccountOwnerProfile,
     TAccountDuelState,
+    TAccountPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
 }
 
-export type ParsedExpireCancelDuelInstruction<
+export type ParsedClaimShareInstruction<
   TProgram extends string = typeof ANTURIX_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    cranker: TAccountMetas[0];
-    creator: TAccountMetas[1];
+    owner: TAccountMetas[0];
+    ownerProfile: TAccountMetas[1];
     duelState: TAccountMetas[2];
-    escrow: TAccountMetas[3];
-    systemProgram: TAccountMetas[4];
+    position: TAccountMetas[3];
+    escrow: TAccountMetas[4];
+    systemProgram: TAccountMetas[5];
   };
-  data: ExpireCancelDuelInstructionData;
+  data: ClaimShareInstructionData;
 };
 
-export function parseExpireCancelDuelInstruction<
+export function parseClaimShareInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedExpireCancelDuelInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedClaimShareInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -325,12 +375,13 @@ export function parseExpireCancelDuelInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      cranker: getNextAccount(),
-      creator: getNextAccount(),
+      owner: getNextAccount(),
+      ownerProfile: getNextAccount(),
       duelState: getNextAccount(),
+      position: getNextAccount(),
       escrow: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getExpireCancelDuelInstructionDataDecoder().decode(instruction.data),
+    data: getClaimShareInstructionDataDecoder().decode(instruction.data),
   };
 }

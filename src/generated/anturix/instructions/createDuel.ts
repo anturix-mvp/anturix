@@ -10,14 +10,10 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getI64Decoder,
   getI64Encoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -28,14 +24,12 @@ import {
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type Option,
-  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -52,8 +46,16 @@ import { ANTURIX_PROGRAM_ADDRESS } from "../programs";
 import {
   getConditionDecoder,
   getConditionEncoder,
+  getSideDecoder,
+  getSideEncoder,
+  getVisibilityDecoder,
+  getVisibilityEncoder,
   type Condition,
   type ConditionArgs,
+  type Side,
+  type SideArgs,
+  type Visibility,
+  type VisibilityArgs,
 } from "../types";
 
 export const CREATE_DUEL_DISCRIMINATOR = new Uint8Array([
@@ -69,6 +71,7 @@ export type CreateDuelInstruction<
   TAccountCreator extends string | AccountMeta<string> = string,
   TAccountCreatorProfile extends string | AccountMeta<string> = string,
   TAccountDuelState extends string | AccountMeta<string> = string,
+  TAccountCreatorPosition extends string | AccountMeta<string> = string,
   TAccountEscrow extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -87,6 +90,9 @@ export type CreateDuelInstruction<
       TAccountDuelState extends string
         ? WritableAccount<TAccountDuelState>
         : TAccountDuelState,
+      TAccountCreatorPosition extends string
+        ? WritableAccount<TAccountCreatorPosition>
+        : TAccountCreatorPosition,
       TAccountEscrow extends string
         ? WritableAccount<TAccountEscrow>
         : TAccountEscrow,
@@ -99,63 +105,67 @@ export type CreateDuelInstruction<
 
 export type CreateDuelInstructionData = {
   discriminator: ReadonlyUint8Array;
-  priceFeedId: ReadonlyUint8Array;
-  targetPrice: bigint;
-  condition: Condition;
+  visibility: Visibility;
+  creatorSide: Side;
   stakeAmount: bigint;
-  targetOpponent: Option<Address>;
-  expiresAt: bigint;
+  condition: Condition;
+  priceFeedId: ReadonlyUint8Array;
+  priceFeedIdB: ReadonlyUint8Array;
+  targetPrice: bigint;
   lowerBound: bigint;
   upperBound: bigint;
-  priceFeedIdB: ReadonlyUint8Array;
+  expiresAt: bigint;
 };
 
 export type CreateDuelInstructionDataArgs = {
-  priceFeedId: ReadonlyUint8Array;
-  targetPrice: number | bigint;
-  condition: ConditionArgs;
+  visibility: VisibilityArgs;
+  creatorSide: SideArgs;
   stakeAmount: number | bigint;
-  targetOpponent: OptionOrNullable<Address>;
-  expiresAt: number | bigint;
+  condition: ConditionArgs;
+  priceFeedId: ReadonlyUint8Array;
+  priceFeedIdB: ReadonlyUint8Array;
+  targetPrice: number | bigint;
   lowerBound: number | bigint;
   upperBound: number | bigint;
-  priceFeedIdB: ReadonlyUint8Array;
+  expiresAt: number | bigint;
 };
 
-export function getCreateDuelInstructionDataEncoder(): Encoder<CreateDuelInstructionDataArgs> {
+export function getCreateDuelInstructionDataEncoder(): FixedSizeEncoder<CreateDuelInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
-      ["targetPrice", getI64Encoder()],
-      ["condition", getConditionEncoder()],
+      ["visibility", getVisibilityEncoder()],
+      ["creatorSide", getSideEncoder()],
       ["stakeAmount", getU64Encoder()],
-      ["targetOpponent", getOptionEncoder(getAddressEncoder())],
-      ["expiresAt", getI64Encoder()],
+      ["condition", getConditionEncoder()],
+      ["priceFeedId", fixEncoderSize(getBytesEncoder(), 32)],
+      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
+      ["targetPrice", getI64Encoder()],
       ["lowerBound", getI64Encoder()],
       ["upperBound", getI64Encoder()],
-      ["priceFeedIdB", fixEncoderSize(getBytesEncoder(), 32)],
+      ["expiresAt", getI64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: CREATE_DUEL_DISCRIMINATOR }),
   );
 }
 
-export function getCreateDuelInstructionDataDecoder(): Decoder<CreateDuelInstructionData> {
+export function getCreateDuelInstructionDataDecoder(): FixedSizeDecoder<CreateDuelInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
-    ["targetPrice", getI64Decoder()],
-    ["condition", getConditionDecoder()],
+    ["visibility", getVisibilityDecoder()],
+    ["creatorSide", getSideDecoder()],
     ["stakeAmount", getU64Decoder()],
-    ["targetOpponent", getOptionDecoder(getAddressDecoder())],
-    ["expiresAt", getI64Decoder()],
+    ["condition", getConditionDecoder()],
+    ["priceFeedId", fixDecoderSize(getBytesDecoder(), 32)],
+    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
+    ["targetPrice", getI64Decoder()],
     ["lowerBound", getI64Decoder()],
     ["upperBound", getI64Decoder()],
-    ["priceFeedIdB", fixDecoderSize(getBytesDecoder(), 32)],
+    ["expiresAt", getI64Decoder()],
   ]);
 }
 
-export function getCreateDuelInstructionDataCodec(): Codec<
+export function getCreateDuelInstructionDataCodec(): FixedSizeCodec<
   CreateDuelInstructionDataArgs,
   CreateDuelInstructionData
 > {
@@ -169,29 +179,33 @@ export type CreateDuelAsyncInput<
   TAccountCreator extends string = string,
   TAccountCreatorProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountCreatorPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   creator: TransactionSigner<TAccountCreator>;
   creatorProfile?: Address<TAccountCreatorProfile>;
   duelState: Address<TAccountDuelState>;
+  creatorPosition: Address<TAccountCreatorPosition>;
   escrow?: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
-  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
-  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
-  condition: CreateDuelInstructionDataArgs["condition"];
+  visibility: CreateDuelInstructionDataArgs["visibility"];
+  creatorSide: CreateDuelInstructionDataArgs["creatorSide"];
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
-  targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
-  expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
+  condition: CreateDuelInstructionDataArgs["condition"];
+  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
+  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
+  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
   lowerBound: CreateDuelInstructionDataArgs["lowerBound"];
   upperBound: CreateDuelInstructionDataArgs["upperBound"];
-  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
+  expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
 };
 
 export async function getCreateDuelInstructionAsync<
   TAccountCreator extends string,
   TAccountCreatorProfile extends string,
   TAccountDuelState extends string,
+  TAccountCreatorPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
@@ -200,6 +214,7 @@ export async function getCreateDuelInstructionAsync<
     TAccountCreator,
     TAccountCreatorProfile,
     TAccountDuelState,
+    TAccountCreatorPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
@@ -210,6 +225,7 @@ export async function getCreateDuelInstructionAsync<
     TAccountCreator,
     TAccountCreatorProfile,
     TAccountDuelState,
+    TAccountCreatorPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >
@@ -222,6 +238,7 @@ export async function getCreateDuelInstructionAsync<
     creator: { value: input.creator ?? null, isWritable: true },
     creatorProfile: { value: input.creatorProfile ?? null, isWritable: true },
     duelState: { value: input.duelState ?? null, isWritable: true },
+    creatorPosition: { value: input.creatorPosition ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -261,6 +278,7 @@ export async function getCreateDuelInstructionAsync<
       getAccountMeta("creator", accounts.creator),
       getAccountMeta("creatorProfile", accounts.creatorProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("creatorPosition", accounts.creatorPosition),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
@@ -273,6 +291,7 @@ export async function getCreateDuelInstructionAsync<
     TAccountCreator,
     TAccountCreatorProfile,
     TAccountDuelState,
+    TAccountCreatorPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
@@ -282,29 +301,33 @@ export type CreateDuelInput<
   TAccountCreator extends string = string,
   TAccountCreatorProfile extends string = string,
   TAccountDuelState extends string = string,
+  TAccountCreatorPosition extends string = string,
   TAccountEscrow extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   creator: TransactionSigner<TAccountCreator>;
   creatorProfile: Address<TAccountCreatorProfile>;
   duelState: Address<TAccountDuelState>;
+  creatorPosition: Address<TAccountCreatorPosition>;
   escrow: Address<TAccountEscrow>;
   systemProgram?: Address<TAccountSystemProgram>;
-  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
-  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
-  condition: CreateDuelInstructionDataArgs["condition"];
+  visibility: CreateDuelInstructionDataArgs["visibility"];
+  creatorSide: CreateDuelInstructionDataArgs["creatorSide"];
   stakeAmount: CreateDuelInstructionDataArgs["stakeAmount"];
-  targetOpponent: CreateDuelInstructionDataArgs["targetOpponent"];
-  expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
+  condition: CreateDuelInstructionDataArgs["condition"];
+  priceFeedId: CreateDuelInstructionDataArgs["priceFeedId"];
+  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
+  targetPrice: CreateDuelInstructionDataArgs["targetPrice"];
   lowerBound: CreateDuelInstructionDataArgs["lowerBound"];
   upperBound: CreateDuelInstructionDataArgs["upperBound"];
-  priceFeedIdB: CreateDuelInstructionDataArgs["priceFeedIdB"];
+  expiresAt: CreateDuelInstructionDataArgs["expiresAt"];
 };
 
 export function getCreateDuelInstruction<
   TAccountCreator extends string,
   TAccountCreatorProfile extends string,
   TAccountDuelState extends string,
+  TAccountCreatorPosition extends string,
   TAccountEscrow extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ANTURIX_PROGRAM_ADDRESS,
@@ -313,6 +336,7 @@ export function getCreateDuelInstruction<
     TAccountCreator,
     TAccountCreatorProfile,
     TAccountDuelState,
+    TAccountCreatorPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >,
@@ -322,6 +346,7 @@ export function getCreateDuelInstruction<
   TAccountCreator,
   TAccountCreatorProfile,
   TAccountDuelState,
+  TAccountCreatorPosition,
   TAccountEscrow,
   TAccountSystemProgram
 > {
@@ -333,6 +358,7 @@ export function getCreateDuelInstruction<
     creator: { value: input.creator ?? null, isWritable: true },
     creatorProfile: { value: input.creatorProfile ?? null, isWritable: true },
     duelState: { value: input.duelState ?? null, isWritable: true },
+    creatorPosition: { value: input.creatorPosition ?? null, isWritable: true },
     escrow: { value: input.escrow ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -356,6 +382,7 @@ export function getCreateDuelInstruction<
       getAccountMeta("creator", accounts.creator),
       getAccountMeta("creatorProfile", accounts.creatorProfile),
       getAccountMeta("duelState", accounts.duelState),
+      getAccountMeta("creatorPosition", accounts.creatorPosition),
       getAccountMeta("escrow", accounts.escrow),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
@@ -368,6 +395,7 @@ export function getCreateDuelInstruction<
     TAccountCreator,
     TAccountCreatorProfile,
     TAccountDuelState,
+    TAccountCreatorPosition,
     TAccountEscrow,
     TAccountSystemProgram
   >);
@@ -382,8 +410,9 @@ export type ParsedCreateDuelInstruction<
     creator: TAccountMetas[0];
     creatorProfile: TAccountMetas[1];
     duelState: TAccountMetas[2];
-    escrow: TAccountMetas[3];
-    systemProgram: TAccountMetas[4];
+    creatorPosition: TAccountMetas[3];
+    escrow: TAccountMetas[4];
+    systemProgram: TAccountMetas[5];
   };
   data: CreateDuelInstructionData;
 };
@@ -396,12 +425,12 @@ export function parseCreateDuelInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateDuelInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -417,6 +446,7 @@ export function parseCreateDuelInstruction<
       creator: getNextAccount(),
       creatorProfile: getNextAccount(),
       duelState: getNextAccount(),
+      creatorPosition: getNextAccount(),
       escrow: getNextAccount(),
       systemProgram: getNextAccount(),
     },

@@ -7,4 +7,5 @@
  */
 
 export * from "./duelState";
+export * from "./position";
 export * from "./userProfile";

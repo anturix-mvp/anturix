@@ -8,5 +8,5 @@
 
 export * from "./creatorProfile";
 export * from "./escrow";
-export * from "./opponentProfile";
-export * from "./userProfile";
+export * from "./ownerProfile";
+export * from "./participantProfile";

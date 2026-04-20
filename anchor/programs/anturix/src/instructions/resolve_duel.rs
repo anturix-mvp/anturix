@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{DuelState, DuelStatus, Condition, UserProfile};
+use crate::state::{DuelState, DuelStatus, Condition, Side};
 use crate::constants::*;
 use crate::errors::AnturixError;
 use crate::events::DuelResolved;
@@ -73,7 +73,17 @@ pub fn handler(ctx: Context<ResolveDuel>) -> Result<()> {
         }
     };
 
-    let (winner, loser) = if condition_met {
+    let creator_wins = condition_met;
+    duel.winning_side = if creator_wins {
+        duel.creator_side.clone()
+    } else {
+        match duel.creator_side {
+            Side::Up => Side::Down,
+            Side::Down => Side::Up,
+        }
+    };
+
+    let (winner, loser) = if creator_wins {
         (duel.creator, duel.opponent)
     } else {
         (duel.opponent, duel.creator)
@@ -81,29 +91,6 @@ pub fn handler(ctx: Context<ResolveDuel>) -> Result<()> {
 
     duel.winner = Some(winner);
     duel.status = DuelStatus::Resolved;
-
-    // Update winner profile
-    let winner_profile = if winner == duel.creator {
-        &mut ctx.accounts.creator_profile
-    } else {
-        &mut ctx.accounts.opponent_profile
-    };
-    winner_profile.wins = winner_profile.wins
-        .checked_add(1)
-        .ok_or(AnturixError::Overflow)?;
-
-    // Update loser profile
-    let loser_profile = if loser == duel.creator {
-        &mut ctx.accounts.creator_profile
-    } else {
-        &mut ctx.accounts.opponent_profile
-    };
-    loser_profile.losses = loser_profile.losses
-        .checked_add(1)
-        .ok_or(AnturixError::Overflow)?;
-    loser_profile.clown_until = clock.unix_timestamp
-        .checked_add(CLOWN_DURATION)
-        .ok_or(AnturixError::Overflow)?;
 
     emit!(DuelResolved {
         duel: duel.key(),
@@ -126,18 +113,4 @@ pub struct ResolveDuel<'info> {
 
     /// CHECK: Pyth PriceUpdateV2 account -- validated in handler via pyth::parse_price_update
     pub price_update: UncheckedAccount<'info>,
-
-    #[account(
-        mut,
-        seeds = [SEED_PROFILE, duel_state.creator.as_ref()],
-        bump = creator_profile.bump,
-    )]
-    pub creator_profile: Account<'info, UserProfile>,
-
-    #[account(
-        mut,
-        seeds = [SEED_PROFILE, duel_state.opponent.as_ref()],
-        bump = opponent_profile.bump,
-    )]
-    pub opponent_profile: Account<'info, UserProfile>,
 }

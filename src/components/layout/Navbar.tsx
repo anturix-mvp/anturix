@@ -1,4 +1,5 @@
-import { Bell, Plus, Search } from 'lucide-react';
+import { Bell, Plus, Search, Globe, Swords, Bot, Cpu, LayoutGrid, ChevronDown, Sparkles } from 'lucide-react';
+
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { XPProgressBar, StreakBadge } from '@/components/gamification/RankSystem
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { currentUser } from '@/data/mockData';
 import atxLogo from '@/assets/atx-logo.jpg';
-import { Globe, Swords, Lock, ChevronDown } from 'lucide-react';
 
 const CATEGORIES = [
   {
@@ -18,42 +18,57 @@ const CATEGORIES = [
     label: 'Crypto Duels',
     subtitle: 'PHASE 1 - ACTIVE',
     status: 'active',
+    description: '1v1 High-stakes private duels and SocialFi integration.',
     items: [
       { to: '/arena', label: 'PUBLIC ARENA', icon: Globe },
       { to: '/', label: 'PRIVATE DUELS', icon: Swords },
     ]
   },
   {
-    id: 'casino',
+    id: 'ai-agents',
     number: '2.',
+    label: 'AI Agent Swarm & Infrastructure',
+    subtitle: 'PHASE 2 - SOON',
+    status: 'soon',
+    icon: Bot,
+    description: 'Integrating AI Oracles for automated resolution, Sentiment Analysis for dynamic odds, and autonomous Market Makers.'
+  },
+  {
+    id: 'casino',
+    number: '3.',
     label: 'Social Casino',
-    subtitle: 'PHASE 2',
-    status: 'soon'
+    subtitle: 'PHASE 3',
+    status: 'soon',
+    icon: Sparkles,
+    description: 'P2P Decentralized games like Poker and Blackjack.'
   },
   {
     id: 'sports',
-    number: '3.',
+    number: '4.',
     label: 'Sportsbook',
-    subtitle: 'PHASE 3',
-    status: 'soon'
+    subtitle: 'PHASE 4',
+    status: 'soon',
+    icon: Cpu,
+    description: 'Real-world data and Sports prediction markets.'
   },
   {
     id: 'oracle',
-    number: '4.',
-    label: 'Oracle Hub',
-    subtitle: 'PHASE 4',
+    number: '5.',
+    label: 'Oracle Marketplace & Hub',
+    subtitle: 'PHASE 5',
+    icon: LayoutGrid,
+    description: 'Oracle Marketplace & SocialFi Hub for decentralized verification.',
     status: 'soon'
   }
 ];
 
 
 export function Navbar() {
-  const { connected } = useWalletContext();
-  const [betModalOpen, setBetModalOpen] = useState(false);
+  const { connected, setShowCreateBetModal } = useWalletContext();
 
   return (
-    <>
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl px-4">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl px-4">
+
         <div className="h-14 flex items-center">
           <Link to="/" className="flex items-center gap-2 group mr-4 shrink-0">
             <span className="font-heading font-black text-xl tracking-[0.3em] italic text-primary group-hover:drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">ANTURIX</span>
@@ -62,44 +77,57 @@ export function Navbar() {
 
           {/* Horizontal Roadmap Navigation */}
           <nav className="hidden lg:flex items-center gap-1 mx-4 h-full">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.id} className="relative group h-full flex items-center px-3">
-                <div className={`flex items-center gap-2 cursor-pointer transition-all ${cat.status === 'soon' ? 'opacity-40 grayscale pointer-events-none' : 'hover:text-primary'}`}>
-                  <span className="text-[10px] font-black text-muted-foreground">{cat.number}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{cat.label}</span>
-                  {cat.items && <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-transform group-hover:rotate-180" />}
-                  {cat.status === 'soon' && (
-                    <span className="text-[6px] font-black px-1 py-0.5 rounded bg-muted border border-border text-muted-foreground">SOON</span>
+            <TooltipProvider>
+              {CATEGORIES.map((cat, idx) => (
+                <div key={`${cat.id}-${idx}`} className="relative group h-full flex items-center px-3">
+
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <div className={`flex items-center gap-2 cursor-pointer transition-all ${cat.status === 'soon' ? 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0' : 'hover:text-primary'}`}>
+                        <span className="text-[10px] font-black text-muted-foreground">{cat.number}</span>
+                        {cat.icon && <cat.icon className="w-3 h-3 text-primary" />}
+                        <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{cat.label}</span>
+                        {cat.items && <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-transform group-hover:rotate-180" />}
+                        {cat.status === 'soon' && (
+                          <span className="text-[6px] font-black px-1 py-0.5 rounded bg-muted border border-border text-muted-foreground">SOON</span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-[#0a0f11] border-primary/20 text-foreground p-3 max-w-[200px] shadow-[0_0_20px_rgba(0,255,255,0.1)]">
+                      <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">{cat.subtitle}</p>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">{cat.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Dropdown for Active Items */}
+                  {cat.items && (
+                    <div className="absolute top-[100%] left-0 w-48 mt-0 pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-[100]">
+                      <div className="bg-[#0a0f11] border border-border/50 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
+                        <div className="p-2 mb-1">
+                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">{cat.subtitle}</p>
+                        </div>
+                        {cat.items.map((item, i) => (
+                          <Link
+                            key={`${item.label}-${i}`}
+                            to={item.to}
+
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all group/item"
+                          >
+                            <item.icon className="w-3.5 h-3.5" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Active Underline */}
+                  {cat.status === 'active' && (
+                    <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary shadow-[0_0_10px_rgba(0,255,255,0.5)]" />
                   )}
                 </div>
-
-                {/* Dropdown for Active Items */}
-                {cat.items && (
-                  <div className="absolute top-[100%] left-0 w-48 mt-0 pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-[100]">
-                    <div className="bg-[#0a0f11] border border-border/50 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
-                      <div className="p-2 mb-1">
-                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">{cat.subtitle}</p>
-                      </div>
-                      {cat.items.map((item) => (
-                        <Link
-                          key={item.label}
-                          to={item.to}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all group/item"
-                        >
-                          <item.icon className="w-3.5 h-3.5" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Active Underline */}
-                {cat.status === 'active' && (
-                  <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary shadow-[0_0_10px_rgba(0,255,255,0.5)]" />
-                )}
-              </div>
-            ))}
+              ))}
+            </TooltipProvider>
           </nav>
 
           {/* Search */}
@@ -127,7 +155,7 @@ export function Navbar() {
               variant="cyan" 
               size="sm" 
               className="hidden sm:flex gap-1.5 font-black uppercase tracking-widest bg-primary text-black hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,255,0.4)] px-4 h-9" 
-              onClick={() => setBetModalOpen(true)}
+              onClick={() => setShowCreateBetModal(true)}
             >
               <Plus className="w-4 h-4" />
               <span>CREATE DUEL</span>
@@ -166,8 +194,6 @@ export function Navbar() {
           </div>
         </div>
       </header>
-
-      <CreateBetModal open={betModalOpen} onClose={() => setBetModalOpen(false)} />
-    </>
   );
 }
+

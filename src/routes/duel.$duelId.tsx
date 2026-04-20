@@ -1,11 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
-import { getDuelAccount, joinDuel } from "@/services/duelContract";
-import { useState, useEffect } from "react";
+import {
+  getDuelAccount,
+  joinDuel,
+  getEntryQuote,
+  getMyPositions,
+  claimTicket,
+  type PositionView,
+} from "@/services/duelContract";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getDuelUrl, storeRecentDuel, isPlayableRecentDuel, loadRecentDuel } from "@/lib/arena";
+import {
+  getDuelUrl,
+  storeRecentDuel,
+  isPlayableRecentDuel,
+  loadRecentDuel,
+} from "@/lib/arena";
 import {
   Swords,
   Share2,
@@ -17,6 +29,9 @@ import {
   AlertCircle,
   Dices,
   FileText,
+  Users,
+  Lock,
+  Globe,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -28,31 +43,67 @@ export const Route = createFileRoute("/duel/$duelId")({
 function DuelPage() {
   const { duelId } = Route.useParams();
   const { solanaWallet, authenticated, login } = useAuth();
+  const walletAddress = solanaWallet?.address;
   const [duel, setDuel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [metadata, setMetadata] = useState<any>(null);
+  const [joinAmount, setJoinAmount] = useState<string>("");
+  const [joinSide, setJoinSide] = useState<"up" | "down">("down");
+  const [entryQuote, setEntryQuote] = useState<{
+    odds: number;
+    payoutSol: number;
+  }>({
+    odds: 0,
+    payoutSol: 0,
+  });
+  const [positions, setPositions] = useState<PositionView[]>([]);
+  const [claimingTicketId, setClaimingTicketId] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
 
-
-  const fetchDuel = async () => {
-    if (!solanaWallet) {
+  const fetchDuel = useCallback(async () => {
+    if (!solanaWallet || !walletAddress) {
       setLoading(false);
       return;
     }
-    const account = await getDuelAccount(solanaWallet, duelId);
-    setDuel(account);
-    setLoading(false);
-  };
+
+    if (inFlightRef.current) {
+      return;
+    }
+
+    inFlightRef.current = true;
+    try {
+      const account = await getDuelAccount(solanaWallet, duelId);
+      setDuel(account);
+      if (account?.stakeAmount) {
+        const stake = Number(account.stakeAmount.toString()) / 1e9;
+        setJoinAmount((prev) => (prev ? prev : stake.toString()));
+      }
+
+      if (account && walletAddress) {
+        const mine = await getMyPositions(solanaWallet, duelId);
+        setPositions(mine);
+      }
+    } finally {
+      setLoading(false);
+      inFlightRef.current = false;
+    }
+  }, [duelId, solanaWallet, walletAddress]);
 
   useEffect(() => {
     fetchDuel();
     setMetadata(loadRecentDuel(duelId));
-    const interval = setInterval(fetchDuel, 10000); // Poll every 10s
-    return () => clearInterval(interval);
-  }, [duelId, solanaWallet]);
 
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchDuel();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [duelId, fetchDuel]);
 
   useEffect(() => {
     if (!duel) return;
@@ -77,21 +128,50 @@ function DuelPage() {
     }
     if (!solanaWallet) return;
 
-    if (duel && duel.creator.toString() === solanaWallet.address) {
+    const parsedJoinAmount = parseFloat(joinAmount);
+    if (isNaN(parsedJoinAmount) || parsedJoinAmount <= 0) {
+      toast.error("Please enter a valid stake amount");
+      return;
+    }
+
+    if (
+      !isPublicArena &&
+      duel &&
+      duel.creator.toString() === solanaWallet.address
+    ) {
       toast.error("You can't join your own duel");
       return;
     }
 
     setJoining(true);
     try {
-      await joinDuel(solanaWallet, duelId);
-      toast.success("Joined duel successfully!");
+      await joinDuel(solanaWallet, duelId, joinSide, parsedJoinAmount);
+      toast.success("Joined arena successfully! 🔥");
       fetchDuel();
     } catch (e: any) {
       console.error(e);
-      toast.error("Failed to join duel: " + e.message);
+      toast.error("Failed to join arena: " + e.message);
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleClaimTicket = async (ticket: PositionView) => {
+    if (!authenticated || !solanaWallet) {
+      login();
+      return;
+    }
+
+    setClaimingTicketId(ticket.pubkey);
+    try {
+      await claimTicket(solanaWallet, duelId, ticket.pubkey);
+      toast.success("Ticket claimed successfully! 🔥");
+      await fetchDuel();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to claim ticket: " + e.message);
+    } finally {
+      setClaimingTicketId(null);
     }
   };
 
@@ -131,6 +211,36 @@ function DuelPage() {
 
     return () => clearInterval(timer);
   }, [duel?.expiresAt]);
+
+  useEffect(() => {
+    const parsedJoinAmount = parseFloat(joinAmount);
+    if (
+      !solanaWallet ||
+      !duel ||
+      !isFinite(parsedJoinAmount) ||
+      parsedJoinAmount <= 0
+    ) {
+      setEntryQuote({ odds: 0, payoutSol: 0 });
+      return;
+    }
+
+    let cancelled = false;
+    getEntryQuote(solanaWallet, duelId, joinSide, parsedJoinAmount)
+      .then((quote) => {
+        if (!cancelled) {
+          setEntryQuote(quote);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEntryQuote({ odds: 0, payoutSol: 0 });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [duel, duelId, joinAmount, joinSide, solanaWallet]);
 
   if (loading) {
     return (
@@ -206,15 +316,33 @@ function DuelPage() {
   const isLive = !!duel.status.active;
   const isPending = !!duel.status.pending;
   const isResolved = !!duel.status.resolved || !!duel.status.claimed;
+  const isPublicArena = !!duel.mode?.publicArena;
+  const poolUp = Number(duel.poolUpTotal?.toString() || "0") / 1e9;
+  const poolDown = Number(duel.poolDownTotal?.toString() || "0") / 1e9;
+  const totalPool = poolUp + poolDown;
+
+  const creatorSide = !!duel.creatorSide?.up ? "up" : "down";
   const winner = duel.winner ? duel.winner.toString() : null;
   const creator = duel.creator.toString();
   const opponent = duel.opponent.toString();
-  const hasOpponent = opponent !== "11111111111111111111111111111111";
+  const hasOpponent =
+    opponent !== "11111111111111111111111111111111" ||
+    totalPool > Number(duel.stakeAmount?.toString() || "0") / 1e9;
   const stakeLamports =
     typeof duel.stakeAmount?.toString === "function"
       ? Number(duel.stakeAmount.toString())
       : Number(duel.stakeAmount);
-  const prizePoolSol = (stakeLamports / 1e9) * 2;
+  const prizePoolSol = isPublicArena ? totalPool : (stakeLamports / 1e9) * 2;
+  const winningSide = duel.winningSide?.up ? "up" : "down";
+  const claimableTickets = positions.filter(
+    (ticket) => isResolved && !ticket.claimed && ticket.side === winningSide,
+  );
+
+  // Dynamic Multipliers
+  const upMultiplier = poolUp > 0 ? (totalPool / poolUp).toFixed(2) : "1.00";
+  const downMultiplier =
+    poolDown > 0 ? (totalPool / poolDown).toFixed(2) : "1.00";
+
   const shortAddress = (addr: string) =>
     `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 
@@ -223,38 +351,56 @@ function DuelPage() {
       <div className="max-w-2xl mx-auto space-y-6 px-4 py-8">
         <Card className="glass-card p-6 sm:p-8 border-gradient-cyan-magenta cyber-corners relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Swords className="w-32 h-32" />
+            {isPublicArena ? (
+              <Globe className="w-32 h-32" />
+            ) : (
+              <Swords className="w-32 h-32" />
+            )}
           </div>
 
           <div className="text-center space-y-4 relative z-10">
-            <div
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase mb-4 ${
-                isLive
-                  ? "bg-primary/10 border-primary/30 text-primary"
-                  : isPending
-                    ? "bg-success/10 border-success/20 text-success"
+            <div className="flex flex-wrap justify-center gap-2 mb-4">
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase ${
+                  isLive
+                    ? "bg-primary/10 border-primary/30 text-primary"
                     : "bg-success/10 border-success/20 text-success"
-              }`}
-            >
-              {isLive ? (
-                <>
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />{" "}
-                  DUEL IS LIVE
-                </>
-              ) : isPending ? (
-                <>
-                  <div className="w-1.5 h-1.5 rounded-full bg-success arena-open-dot" />{" "}
-                  ARENA OPEN
-                </>
-              ) : (
-                <>
-                  <Trophy className="w-3 h-3" /> Duel Concluded
-                </>
-              )}
+                }`}
+              >
+                {isLive ? (
+                  <>
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />{" "}
+                    DUEL IS LIVE
+                  </>
+                ) : isPending ? (
+                  <>
+                    <div className="w-1.5 h-1.5 rounded-full bg-success arena-open-dot" />{" "}
+                    ARENA OPEN
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="w-3 h-3" /> Duel Concluded
+                  </>
+                )}
+              </div>
+
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase ${isPublicArena ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" : "bg-orange-500/10 border-orange-500/30 text-orange-400"}`}
+              >
+                {isPublicArena ? (
+                  <Users className="w-3 h-3" />
+                ) : (
+                  <Lock className="w-3 h-3" />
+                )}
+                {isPublicArena ? "Public Arena · Pool" : "Private Duel · 1v1"}
+              </div>
             </div>
 
             <h1 className="text-4xl font-black font-heading tracking-tighter text-foreground mb-2 italic">
-              ARENA <span className="text-primary">DUEL</span>
+              {isPublicArena ? "POOL" : "ARENA"}{" "}
+              <span className="text-primary">
+                {isPublicArena ? "ARENA" : "DUEL"}
+              </span>
             </h1>
 
             {metadata?.title && (
@@ -267,19 +413,63 @@ function DuelPage() {
               ID: {duelId}
             </p>
 
-            {metadata?.description?.includes("[COIN_TOSS_RESOLVE]") && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-6 pulse-glow-cyan">
-                <Dices className="w-3 h-3" /> Resolution: Coin Toss Fallback
+            {isPublicArena && (
+              <div className="grid grid-cols-2 gap-4 py-6 bg-muted/10 rounded-3xl border border-border/30 px-6 mt-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                      Team UP
+                    </span>
+                    <span className="text-xs font-black text-emerald-500">
+                      {upMultiplier}x
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500"
+                      style={{ width: `${(poolUp / (totalPool || 1)) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold text-foreground">
+                    {poolUp.toFixed(2)} SOL
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
+                      Team DOWN
+                    </span>
+                    <span className="text-xs font-black text-rose-500">
+                      {downMultiplier}x
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-rose-500"
+                      style={{
+                        width: `${(poolDown / (totalPool || 1)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold text-foreground">
+                    {poolDown.toFixed(2)} SOL
+                  </p>
+                </div>
               </div>
             )}
 
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 px-4 sm:px-12 bg-muted/20 rounded-3xl border border-border/50">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 px-4 sm:px-12 bg-muted/20 rounded-3xl border border-border/50 mt-4">
               {/* Creator Side */}
               <div className="flex flex-col items-center gap-3 flex-1">
                 <div className="relative">
-                  <div className="w-20 h-20 rounded-2xl bg-primary/20 border-2 border-primary/40 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,255,255,0.2)]">
-                    <span className="text-3xl font-black text-primary">C</span>
+                  <div
+                    className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-lg ${creatorSide === "up" ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}
+                  >
+                    <span
+                      className={`text-3xl font-black ${creatorSide === "up" ? "text-emerald-500" : "text-rose-500"}`}
+                    >
+                      {creatorSide === "up" ? "▲" : "▼"}
+                    </span>
                   </div>
                   {winner === duel.creator.toString() && (
                     <div className="absolute -top-3 -right-3 bg-yellow-400 p-1.5 rounded-full shadow-lg">
@@ -287,9 +477,25 @@ function DuelPage() {
                     </div>
                   )}
                 </div>
+
+                <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-left">
+                  <p className="text-[10px] uppercase tracking-widest text-primary font-black">
+                    Your Potential Payout
+                  </p>
+                  <p className="text-lg font-black text-foreground mt-1">
+                    {entryQuote.payoutSol > 0
+                      ? `${entryQuote.payoutSol.toFixed(4)} SOL`
+                      : "Insufficient market liquidity"}
+                  </p>
+                  {entryQuote.odds > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Locked Odds: {entryQuote.odds.toFixed(2)}x at entry
+                    </p>
+                  )}
+                </div>
                 <div className="text-center">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                    Creator
+                    Creator ({creatorSide.toUpperCase()})
                   </p>
                   <p className="text-xs font-bold text-foreground">
                     {shortAddress(creator)}
@@ -306,16 +512,12 @@ function DuelPage() {
                 <div className="relative">
                   {hasOpponent ? (
                     <div
-                      className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center overflow-hidden ${
-                        winner === opponent
-                          ? "bg-success/20 border-success/40 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                          : "bg-accent/20 border-accent/40 shadow-[0_0_20px_rgba(236,72,153,0.2)]"
-                      }`}
+                      className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-lg ${creatorSide === "down" ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}
                     >
                       <span
-                        className={`text-3xl font-black ${winner === opponent ? "text-success" : "text-accent"}`}
+                        className={`text-3xl font-black ${creatorSide === "down" ? "text-emerald-500" : "text-rose-500"}`}
                       >
-                        O
+                        {creatorSide === "down" ? "▲" : "▼"}
                       </span>
                     </div>
                   ) : (
@@ -331,10 +533,18 @@ function DuelPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                    {hasOpponent ? "Opponent" : "Open Slot"}
+                    {isPublicArena
+                      ? "OPPONENTS"
+                      : hasOpponent
+                        ? "Opponent"
+                        : "Open Slot"}
                   </p>
                   <p className="text-xs font-bold text-foreground">
-                    {hasOpponent ? shortAddress(opponent) : "Waiting..."}
+                    {isPublicArena
+                      ? `${(isPublicArena ? (creatorSide === "up" ? poolDown : poolUp) : 0).toFixed(2)} SOL`
+                      : hasOpponent
+                        ? shortAddress(opponent)
+                        : "Waiting..."}
                   </p>
                 </div>
               </div>
@@ -343,21 +553,88 @@ function DuelPage() {
             <div className="grid grid-cols-2 gap-4 py-6">
               <div className="p-4 rounded-2xl bg-muted/30 border border-border text-center">
                 <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">
-                  Stakes
+                  {isPublicArena ? "Liquidity" : "Stakes"}
                 </p>
                 <p className="text-2xl font-black text-success">
-                  {(stakeLamports / 1e9).toFixed(2)} SOL
+                  {isPublicArena
+                    ? totalPool.toFixed(2)
+                    : (stakeLamports / 1e9).toFixed(2)}{" "}
+                  SOL
                 </p>
               </div>
               <div className="p-4 rounded-2xl bg-muted/30 border border-border text-center">
                 <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">
-                  Total Prize
+                  {isPublicArena ? "Prediction" : "Total Prize"}
                 </p>
-                <p className="text-2xl font-black text-primary">
-                  {prizePoolSol.toFixed(2)} SOL
+                <p className="text-2xl font-black text-primary uppercase">
+                  {isPublicArena
+                    ? "Pyth Oracle"
+                    : `${prizePoolSol.toFixed(2)} SOL`}
                 </p>
               </div>
             </div>
+
+            {((isPublicArena && !isResolved) ||
+              (!isPublicArena && isPending && !isCreator)) && (
+              <div className="space-y-4 pt-6 border-t border-border/50">
+                {isPublicArena && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setJoinSide("up")}
+                      className={`flex-1 py-4 rounded-xl border-2 font-black transition-all ${
+                        joinSide === "up"
+                          ? "bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-xl"
+                          : "bg-muted/30 border-transparent text-muted-foreground"
+                      }`}
+                    >
+                      ▲ STAKE UP
+                    </button>
+                    <button
+                      onClick={() => setJoinSide("down")}
+                      className={`flex-1 py-4 rounded-xl border-2 font-black transition-all ${
+                        joinSide === "down"
+                          ? "bg-rose-500/10 border-rose-500 text-rose-500 shadow-xl"
+                          : "bg-muted/30 border-transparent text-muted-foreground"
+                      }`}
+                    >
+                      ▼ STAKE DOWN
+                    </button>
+                  </div>
+                )}
+
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={joinAmount}
+                    onChange={(e) => setJoinAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-6 py-5 rounded-2xl bg-muted/50 border border-border text-2xl font-black text-foreground focus:outline-none focus:border-primary/50 text-center"
+                    disabled={!isPublicArena} // 1v1 enforces matching amount
+                  />
+                  {!isPublicArena && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 bg-primary/20 text-primary text-[8px] font-black rounded-lg">
+                      FIXED MATCH
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleJoin}
+                  disabled={joining}
+                  className="w-full h-16 text-xl font-black tracking-[0.2em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners"
+                >
+                  {joining ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" /> PROCESSING
+                    </>
+                  ) : isPublicArena ? (
+                    "PLACE STAKE 🔥"
+                  ) : (
+                    "JOIN ARENA 🔥"
+                  )}
+                </Button>
+              </div>
+            )}
 
             {metadata?.description && (
               <div className="py-6 border-t border-border mt-2 space-y-3">
@@ -375,24 +652,39 @@ function DuelPage() {
               </div>
             )}
 
-
-            {isPending && !isCreator && !isOpponent && (
-              <Button
-                onClick={handleJoin}
-                disabled={joining}
-                className="w-full h-16 text-xl font-black tracking-[0.2em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners"
-              >
-                {joining ? (
-                  <>
-                    <Loader2 className="animate-spin mr-2" /> PROCESSING
-                  </>
-                ) : (
-                  "JOIN ARENA 🔥"
-                )}
-              </Button>
+            {positions.length > 0 && (
+              <div className="py-6 border-t border-border mt-2 space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  My Positions
+                </p>
+                <div className="space-y-2">
+                  {positions.map((p) => (
+                    <div
+                      key={p.pubkey}
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border"
+                    >
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider">
+                          {p.side === "up" ? "UP" : "DOWN"} ·{" "}
+                          {p.lockedOdds.toFixed(2)}x
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Stake {p.amountSol.toFixed(4)} SOL · Payout{" "}
+                          {p.potentialPayoutSol.toFixed(4)} SOL
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-widest ${p.claimed ? "text-success" : "text-primary"}`}
+                      >
+                        {p.claimed ? "Claimed" : "Open"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {isPending && isCreator && (
+            {!isPublicArena && isPending && isCreator && (
               <div className="space-y-4 pt-4 border-t border-border mt-8">
                 <div className="flex items-center gap-2 justify-center text-muted-foreground">
                   <Share2 className="w-3 h-3" />
@@ -453,6 +745,59 @@ function DuelPage() {
                 <p className="text-lg font-black text-success mt-4">
                   Prize Pool: {prizePoolSol.toFixed(2)} SOL
                 </p>
+              </div>
+            )}
+
+            {isResolved && positions.length > 0 && (
+              <div className="mt-6 p-6 rounded-2xl bg-card border border-border space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                      Claim My Tickets
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Winning tickets are claimable one by one.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                    {claimableTickets.length} Claimable
+                  </span>
+                </div>
+
+                {claimableTickets.length > 0 ? (
+                  <div className="space-y-3">
+                    {claimableTickets.map((ticket) => (
+                      <div
+                        key={ticket.pubkey}
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl bg-muted/20 border border-border"
+                      >
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wider text-foreground">
+                            {ticket.side === "up" ? "UP" : "DOWN"} ·{" "}
+                            {ticket.lockedOdds.toFixed(2)}x
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Stake {ticket.amountSol.toFixed(4)} SOL · Payout{" "}
+                            {ticket.potentialPayoutSol.toFixed(4)} SOL
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => handleClaimTicket(ticket)}
+                          disabled={claimingTicketId === ticket.pubkey}
+                          className="sm:w-auto w-full h-11 px-5 bg-primary text-black font-black uppercase tracking-widest"
+                        >
+                          {claimingTicketId === ticket.pubkey
+                            ? "Claiming..."
+                            : "Claim"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No winning tickets are pending claim.
+                  </p>
+                )}
               </div>
             )}
           </div>

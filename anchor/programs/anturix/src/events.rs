@@ -18,6 +18,10 @@ pub struct DuelCreated {
 pub struct DuelAccepted {
     pub duel: Pubkey,
     pub opponent: Pubkey,
+    pub side: u8,
+    pub amount: u64,
+    pub locked_odds_bps: u64,
+    pub potential_payout: u64,
 }
 
 #[event]

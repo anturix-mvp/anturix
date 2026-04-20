@@ -3,14 +3,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Swords, X, Clock, Coins, Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createDuel } from "@/services/duelContract";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { storeRecentDuel } from "@/lib/arena";
-import { Dices, Info, Eye, Users as UsersIcon, Bitcoin, Trophy as TrophyIcon, TrendingUp, TrendingDown, Lock } from "lucide-react";
-
-
-
+import {
+  Dices,
+  Info,
+  Eye,
+  Users as UsersIcon,
+  Bitcoin,
+  Trophy as TrophyIcon,
+  TrendingUp,
+  TrendingDown,
+  Lock,
+} from "lucide-react";
 
 const durations = [
   { value: "1h", label: "1 Hour" },
@@ -24,27 +30,35 @@ const presetAmounts = [0.1, 0.5, 1, 5, 10];
 
 interface CreateBetModalProps {
   open: boolean;
+  preset?: "standard" | "coinflip";
   onClose: () => void;
 }
 
-export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
+export function CreateBetModal({
+  open,
+  preset = "standard",
+  onClose,
+}: CreateBetModalProps) {
   const { authenticated, ready, solanaWallet, login } = useAuth();
-  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [duration, setDuration] = useState("24h");
   const [useCoinToss, setUseCoinToss] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<'general' | 'crypto' | 'sports'>('general');
-  const [activeType, setActiveType] = useState<'1v1' | 'expert' | 'pool'>('1v1');
-  const [mode, setMode] = useState<'private' | 'public'>('private');
-  const [position, setPosition] = useState<'up' | 'down'>('up');
+  const [activeCategory, setActiveCategory] = useState<
+    "general" | "crypto" | "sports"
+  >("general");
+  const [activeType, setActiveType] = useState<"1v1" | "expert" | "pool">(
+    "1v1",
+  );
+  const [mode, setMode] = useState<"private" | "public">("private");
+  const [position, setPosition] = useState<"up" | "down">("up");
+  const [coinSide, setCoinSide] = useState<"heads" | "tails">("heads");
+  const [isFastCoinFlip, setIsFastCoinFlip] = useState(false);
   const [step, setStep] = useState(1);
 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-
-
 
   const resetForm = () => {
     setTitle("");
@@ -52,9 +66,12 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
     setAmount("");
     setDuration("24h");
     setUseCoinToss(true);
+    setMode("private");
+    setPosition("up");
+    setCoinSide("heads");
+    setIsFastCoinFlip(false);
     setStep(1);
   };
-
 
   const handleClose = () => {
     resetForm();
@@ -94,6 +111,29 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
       }
     }
   }, [open, step, solanaWallet?.address]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (preset === "coinflip") {
+      setMode("private");
+      setActiveCategory("general");
+      setActiveType("1v1");
+      setIsFastCoinFlip(true);
+      setUseCoinToss(false);
+      setTitle("Cyberpunk Coin Flip (VRF)");
+      setDescription(
+        "Instant private Heads/Tails duel settled by VRF oracle. Winner takes payout automatically.",
+      );
+      setStep(3);
+    }
+  }, [open, preset]);
+
+  useEffect(() => {
+    if (isFastCoinFlip) {
+      setPosition(coinSide === "heads" ? "up" : "down");
+    }
+  }, [coinSide, isFastCoinFlip]);
 
   const handleSubmit = async () => {
     if (!ready) {
@@ -144,24 +184,40 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
       return;
     }
 
+    if (submitting) return;
+
     setSubmitting(true);
+
     try {
-      const finalDescription = useCoinToss
-        ? `${description}\n\n[COIN_TOSS_RESOLVE] RESOLUTION: Mutual agreement required. If neither party agrees, an automated coin toss will decide the winner.`
+      const resolvedTitle = isFastCoinFlip
+        ? `Cyberpunk Coin Flip: ${coinSide.toUpperCase()} (VRF)`
+        : title;
+      const baseDescription = isFastCoinFlip
+        ? `Fast private coin flip ticket. Picked side: ${coinSide.toUpperCase()}.\n[VRF_COIN_FLIP] Resolve using VRF oracle with provable randomness.`
         : description;
 
-      const duelId = await createDuel(activeWallet, parsedAmount);
+      const finalDescription =
+        !isFastCoinFlip && useCoinToss
+          ? `${baseDescription}\n\n[COIN_TOSS_RESOLVE] RESOLUTION: Mutual agreement required. If neither party agrees, an automated coin toss will decide the winner.`
+          : baseDescription;
+
+      const duelId = await createDuel(
+        activeWallet,
+        parsedAmount,
+        mode,
+        position,
+      );
 
       storeRecentDuel(
         duelId,
-        title.trim() || "Untitled duel",
+        resolvedTitle.trim() || "Untitled duel",
         "pending",
         finalDescription,
       );
 
       toast.success("ARENA DUEL CREATED! 🔥");
       handleClose();
-      navigate({ to: "/duel/$duelId", params: { duelId } });
+      window.location.assign(`/duel/${duelId}`);
     } catch (e: any) {
       console.error(e);
       const message = String(e?.message || "Failed to create duel");
@@ -183,7 +239,9 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
     }
   };
 
-  const isStep1Valid = title.trim().length > 0 && description.trim().length > 0;
+  const isStep1Valid =
+    isFastCoinFlip ||
+    (title.trim().length > 0 && description.trim().length > 0);
   const isValid = isStep1Valid && parseFloat(amount) > 0;
   const parsedStakeAmount = parseFloat(amount);
   const hasInsufficientBalance =
@@ -248,7 +306,6 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
               ))}
             </div>
 
-
             {/* Steps */}
 
             <AnimatePresence mode="wait">
@@ -260,16 +317,10 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="p-6 space-y-6"
                 >
-                  <div className="text-center space-y-2 mb-4">
-                    <h3 className="font-heading text-2xl font-black tracking-tighter italic text-foreground leading-none">
-                      CREATE YOUR DUEL
-                    </h3>
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       onClick={() => {
-                        setMode('public');
+                        setMode("public");
                         setStep(2);
                       }}
                       className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-300"
@@ -285,14 +336,15 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                           PUBLIC ARENA
                         </h4>
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
-                          Open challenge. Appears in the global feed for all users.
+                          Open challenge. Appears in the global feed for all
+                          users.
                         </p>
                       </div>
                     </button>
 
                     <button
                       onClick={() => {
-                        setMode('private');
+                        setMode("private");
                         setStep(2);
                       }}
                       className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300"
@@ -305,7 +357,8 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                           PRIVATE DUEL
                         </h4>
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
-                          Invite-only. Generate a unique duel link for your opponent.
+                          Invite-only. Generate a unique duel link for your
+                          opponent.
                         </p>
                       </div>
                     </button>
@@ -326,27 +379,43 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                   exit={{ opacity: 0, x: -20 }}
                   className="p-6 space-y-8"
                 >
-
                   {/* Category Tabs */}
                   <div className="flex p-1 bg-muted/30 rounded-2xl border border-border/50">
                     {[
-                      { id: 'general', label: 'GENERAL', icon: Zap, soon: false },
-                      { id: 'crypto', label: 'CRYPTO', icon: Bitcoin, soon: true },
-                      { id: 'sports', label: 'SPORTS', icon: TrophyIcon, soon: true },
+                      {
+                        id: "general",
+                        label: "GENERAL",
+                        icon: Zap,
+                        soon: false,
+                      },
+                      {
+                        id: "crypto",
+                        label: "CRYPTO",
+                        icon: Bitcoin,
+                        soon: true,
+                      },
+                      {
+                        id: "sports",
+                        label: "SPORTS",
+                        icon: TrophyIcon,
+                        soon: true,
+                      },
                     ].map((tab) => (
-
-
                       <button
                         key={tab.id}
-                        onClick={() => !tab.soon && setActiveCategory(tab.id as any)}
+                        onClick={() =>
+                          !tab.soon && setActiveCategory(tab.id as any)
+                        }
                         className={`flex-1 relative flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
-                          activeCategory === tab.id 
-                            ? "bg-card text-primary shadow-lg border border-primary/20" 
+                          activeCategory === tab.id
+                            ? "bg-card text-primary shadow-lg border border-primary/20"
                             : "text-muted-foreground hover:text-foreground grayscale-[0.8]"
                         } ${tab.soon ? "cursor-not-allowed" : ""}`}
                       >
                         <tab.icon className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-black tracking-widest">{tab.label}</span>
+                        <span className="text-[10px] font-black tracking-widest">
+                          {tab.label}
+                        </span>
                         {tab.soon && (
                           <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[6px] font-black border border-primary/30">
                             SOON
@@ -363,24 +432,46 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { id: '1v1', label: '1V1 DUEL', sub: 'Challenge someone directly', icon: Swords, soon: false },
-                        { id: 'expert', label: 'EXPERT LOCK', sub: 'Monetize your prediction', icon: Eye, soon: true },
-                        { id: 'pool', label: 'POKER POOL', sub: 'Group stakes pool', icon: UsersIcon, soon: true },
+                        {
+                          id: "1v1",
+                          label: "1V1 DUEL",
+                          sub: "Challenge someone directly",
+                          icon: Swords,
+                          soon: false,
+                        },
+                        {
+                          id: "expert",
+                          label: "EXPERT LOCK",
+                          sub: "Monetize your prediction",
+                          icon: Eye,
+                          soon: true,
+                        },
+                        {
+                          id: "pool",
+                          label: "POKER POOL",
+                          sub: "Group stakes pool",
+                          icon: UsersIcon,
+                          soon: true,
+                        },
                       ].map((t) => (
                         <button
                           key={t.id}
                           onClick={() => !t.soon && setActiveType(t.id as any)}
                           className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all text-center aspect-square gap-3 ${
-                            activeType === t.id 
-                              ? "bg-primary/10 border-primary shadow-[0_0_20px_rgba(0,255,255,0.15)] ring-1 ring-primary/20" 
+                            activeType === t.id
+                              ? "bg-primary/10 border-primary shadow-[0_0_20px_rgba(0,255,255,0.15)] ring-1 ring-primary/20"
                               : "bg-muted/10 border-border/50 hover:bg-muted/30"
                           } ${t.soon ? "cursor-not-allowed grayscale opacity-50" : ""}`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeType === t.id ? "bg-primary text-black" : "bg-muted text-muted-foreground"}`}>
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeType === t.id ? "bg-primary text-black" : "bg-muted text-muted-foreground"}`}
+                          >
                             <t.icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className={`text-[10px] font-black tracking-tight leading-none ${activeType === t.id ? "text-primary" : "text-foreground"}`}>
+                            <p
+                              className={`text-[10px] font-black tracking-tight leading-none ${activeType === t.id ? "text-primary" : "text-foreground"}`}
+                            >
                               {t.label}
                             </p>
                             <p className="text-[7px] text-muted-foreground mt-1 leading-tight px-1">
@@ -461,8 +552,6 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                   exit={{ opacity: 0, x: -20 }}
                   className="p-6 space-y-6"
                 >
-
-
                   <div className="space-y-6">
                     {/* Visibility Mode */}
                     <div className="space-y-4">
@@ -471,32 +560,40 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                       </label>
                       <div className="flex gap-4 p-1 bg-muted/20 rounded-2xl border border-border/50">
                         <button
-                          onClick={() => setMode('private')}
+                          onClick={() => setMode("private")}
                           className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl transition-all ${
-                            mode === 'private' 
-                              ? "bg-primary text-black shadow-lg" 
+                            mode === "private"
+                              ? "bg-primary text-black shadow-lg"
                               : "text-muted-foreground hover:bg-muted/50"
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <Lock className="w-3 h-3" />
-                            <span className="text-[10px] font-black tracking-widest uppercase">Private Duel</span>
+                            <span className="text-[10px] font-black tracking-widest uppercase">
+                              Private Duel
+                            </span>
                           </div>
-                          <span className="text-[8px] font-bold opacity-70">Invite-only · Fixed 2x payout</span>
+                          <span className="text-[8px] font-bold opacity-70">
+                            Invite-only · Fixed 2x payout
+                          </span>
                         </button>
                         <button
-                          onClick={() => setMode('public')}
+                          onClick={() => setMode("public")}
                           className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl transition-all ${
-                            mode === 'public' 
-                              ? "bg-primary text-black shadow-lg" 
+                            mode === "public"
+                              ? "bg-primary text-black shadow-lg"
                               : "text-muted-foreground hover:bg-muted/50"
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <UsersIcon className="w-3 h-3" />
-                            <span className="text-[10px] font-black tracking-widest uppercase">Public Arena</span>
+                            <span className="text-[10px] font-black tracking-widest uppercase">
+                              Public Arena
+                            </span>
                           </div>
-                          <span className="text-[8px] font-bold opacity-70">Global feed · Dynamic odds</span>
+                          <span className="text-[8px] font-bold opacity-70">
+                            Global feed · Dynamic odds
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -559,40 +656,45 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                                 : "bg-muted/20 text-muted-foreground border-transparent hover:bg-muted/40"
                             }`}
                           >
-                            {d.label.split(' ')[0]} {d.label.split(' ')[1]?.charAt(0)}
+                            {d.label.split(" ")[0]}{" "}
+                            {d.label.split(" ")[1]?.charAt(0)}
                           </button>
                         ))}
                       </div>
                     </div>
 
                     {/* Public Mode & Crypto Category: Position Selection */}
-                    {mode === 'public' && activeCategory === 'crypto' && (
+                    {mode === "public" && activeCategory === "crypto" && (
                       <div className="space-y-4 pt-2 border-t border-border/30">
                         <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
                           Your Position
                         </label>
                         <div className="flex gap-4">
                           <button
-                            onClick={() => setPosition('up')}
+                            onClick={() => setPosition("up")}
                             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border transition-all ${
-                              position === 'up' 
-                                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]" 
+                              position === "up"
+                                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
                                 : "bg-muted/10 border-border/50 text-muted-foreground"
                             }`}
                           >
                             <TrendingUp className="w-4 h-4" />
-                            <span className="text-xs font-black uppercase italic tracking-widest">UP</span>
+                            <span className="text-xs font-black uppercase italic tracking-widest">
+                              UP
+                            </span>
                           </button>
                           <button
-                            onClick={() => setPosition('down')}
+                            onClick={() => setPosition("down")}
                             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border transition-all ${
-                              position === 'down' 
-                                ? "bg-rose-500/10 border-rose-500/50 text-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.1)]" 
+                              position === "down"
+                                ? "bg-rose-500/10 border-rose-500/50 text-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.1)]"
                                 : "bg-muted/10 border-border/50 text-muted-foreground"
                             }`}
                           >
                             <TrendingDown className="w-4 h-4" />
-                            <span className="text-xs font-black uppercase italic tracking-widest">DOWN</span>
+                            <span className="text-xs font-black uppercase italic tracking-widest">
+                              DOWN
+                            </span>
                           </button>
                         </div>
                         <p className="text-[9px] text-center text-muted-foreground italic">
@@ -601,6 +703,62 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                       </div>
                     )}
 
+                    {/* Private Mode: Fast Coin Flip */}
+                    {mode === "private" && (
+                      <div className="space-y-4 pt-2 border-t border-border/30">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                            Cyberpunk Coin Flip
+                          </label>
+                          <button
+                            onClick={() => setIsFastCoinFlip((prev) => !prev)}
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                              isFastCoinFlip
+                                ? "bg-primary/20 border-primary/50 text-primary"
+                                : "bg-muted/20 border-border/40 text-muted-foreground"
+                            }`}
+                          >
+                            {isFastCoinFlip ? "Enabled" : "Enable"}
+                          </button>
+                        </div>
+
+                        {isFastCoinFlip && (
+                          <>
+                            <div className="flex gap-4">
+                              <button
+                                onClick={() => setCoinSide("heads")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border transition-all ${
+                                  coinSide === "heads"
+                                    ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_rgba(0,255,255,0.1)]"
+                                    : "bg-muted/10 border-border/50 text-muted-foreground"
+                                }`}
+                              >
+                                <Dices className="w-4 h-4" />
+                                <span className="text-xs font-black uppercase tracking-widest">
+                                  Heads
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => setCoinSide("tails")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border transition-all ${
+                                  coinSide === "tails"
+                                    ? "bg-accent/10 border-accent/50 text-accent shadow-[0_0_20px_rgba(255,0,153,0.1)]"
+                                    : "bg-muted/10 border-border/50 text-muted-foreground"
+                                }`}
+                              >
+                                <Dices className="w-4 h-4" />
+                                <span className="text-xs font-black uppercase tracking-widest">
+                                  Tails
+                                </span>
+                              </button>
+                            </div>
+                            <p className="text-[9px] text-center text-muted-foreground italic">
+                              Private 1v1 VRF flow. Side locks at creation.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     {/* Summary Box */}
                     <div className="relative p-6 rounded-2xl bg-muted/10 border border-border/40 overflow-hidden">
@@ -609,40 +767,67 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                       <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/40" />
                       <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/40" />
                       <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/40" />
-                      
+
                       <div className="space-y-3">
-                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-4">Summary</p>
+                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-4">
+                          Summary
+                        </p>
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Mode</span>
-                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest">{mode === 'private' ? 'Private Duel' : 'Public Arena'}</span>
+                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            Mode
+                          </span>
+                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest">
+                            {mode === "private"
+                              ? "Private Duel"
+                              : "Public Arena"}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Heading</span>
-                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest truncate max-w-[150px]">"{title || 'Untitled'}"</span>
+                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            Heading
+                          </span>
+                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest truncate max-w-[150px]">
+                            "
+                            {isFastCoinFlip
+                              ? `Coin Flip ${coinSide.toUpperCase()}`
+                              : title || "Untitled"}
+                            "
+                          </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Expires In</span>
-                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest">{durations.find(d => d.value === duration)?.label}</span>
+                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            Expires In
+                          </span>
+                          <span className="text-[9px] font-black text-foreground uppercase tracking-widest">
+                            {durations.find((d) => d.value === duration)?.label}
+                          </span>
                         </div>
                         <div className="pt-4 mt-2 border-t border-border/30 flex justify-between items-end">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Total Stake</span>
-                          <span className="text-2xl font-black text-primary italic tracking-tighter leading-none">{amount || '0'} <span className="text-sm font-black">SOL</span></span>
+                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                            Total Stake
+                          </span>
+                          <span className="text-2xl font-black text-primary italic tracking-tighter leading-none">
+                            {amount || "0"}{" "}
+                            <span className="text-sm font-black">SOL</span>
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => setStep(2)}
-                        className="flex-1 py-5 rounded-2xl border border-border/50 text-muted-foreground font-black tracking-widest uppercase hover:bg-muted/30 transition-all text-[10px]"
-                      >
-                        ← BACK
-                      </button>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex-1 py-5 rounded-2xl border border-border/50 text-muted-foreground font-black tracking-widest uppercase hover:bg-muted/30 transition-all text-[10px]"
+                    >
+                      ← BACK
+                    </button>
 
                     <button
                       onClick={handleSubmit}
-                      disabled={!isValid || submitting || hasInsufficientBalance}
+                      disabled={
+                        !isValid || submitting || hasInsufficientBalance
+                      }
                       className="flex-[2] py-5 rounded-2xl bg-gradient-to-r from-primary to-accent text-black font-black tracking-[0.2em] uppercase disabled:opacity-20 transition-all flex items-center justify-center gap-2 text-[10px] shadow-lg shadow-primary/10"
                     >
                       {submitting ? (
@@ -651,12 +836,15 @@ export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
                           PROCESSING...
                         </>
                       ) : (
-                        <>{mode === 'private' ? 'STAKE & CREATE ⚔️' : 'POST TO PUBLIC ARENA ⚔️'}</>
+                        <>
+                          {mode === "private"
+                            ? "STAKE & CREATE ⚔️"
+                            : "POST TO PUBLIC ARENA ⚔️"}
+                        </>
                       )}
                     </button>
                   </div>
                 </motion.div>
-
               )}
             </AnimatePresence>
           </motion.div>

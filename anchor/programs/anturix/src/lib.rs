@@ -12,7 +12,7 @@ pub mod state;
 use instructions::*;
 use state::Condition;
 
-declare_id!("HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9");
+declare_id!("DBUe2tdR9esX7WxfPgTU9NTiUpB7anLkAnjocVukSEAZ");
 
 #[program]
 pub mod anturix {
@@ -33,6 +33,8 @@ pub mod anturix {
         lower_bound: i64,
         upper_bound: i64,
         price_feed_id_b: [u8; 32],
+        mode: state::DuelMode,
+        creator_side: state::Side,
     ) -> Result<()> {
         instructions::create_duel::handler(
             ctx,
@@ -45,12 +47,20 @@ pub mod anturix {
             lower_bound,
             upper_bound,
             price_feed_id_b,
+            mode,
+            creator_side,
         )
     }
 
-    pub fn accept_duel(ctx: Context<AcceptDuel>) -> Result<()> {
-        instructions::accept_duel::handler(ctx)
+
+    pub fn accept_duel(
+        ctx: Context<AcceptDuel>,
+        side: state::Side,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::accept_duel::handler(ctx, side, amount)
     }
+
 
     pub fn resolve_duel(ctx: Context<ResolveDuel>) -> Result<()> {
         instructions::resolve_duel::handler(ctx)
@@ -58,6 +68,10 @@ pub mod anturix {
 
     pub fn claim_prize(ctx: Context<ClaimPrize>) -> Result<()> {
         instructions::claim_prize::handler(ctx)
+    }
+
+    pub fn claim_ticket(ctx: Context<ClaimTicket>) -> Result<()> {
+        instructions::claim_ticket::handler(ctx)
     }
 
     pub fn cancel_duel(ctx: Context<CancelDuel>) -> Result<()> {

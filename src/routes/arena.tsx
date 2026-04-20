@@ -3,7 +3,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Plus, Swords, Globe, Flame, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import { useWalletContext } from '@/contexts/WalletContext';
 import { CreateBetModal } from '@/components/bet/CreateBetModal';
+
 
 export const Route = createFileRoute('/arena')({
   head: () => ({
@@ -16,7 +18,7 @@ export const Route = createFileRoute('/arena')({
 });
 
 function PublicArenaPage() {
-  const [modalOpen, setModalOpen] = useState(false);
+  const { setShowCreateBetModal } = useWalletContext();
 
   return (
     <MainLayout>
@@ -47,7 +49,7 @@ function PublicArenaPage() {
               </div>
 
               <Button 
-                onClick={() => setModalOpen(true)}
+                onClick={() => setShowCreateBetModal(true)}
                 className="bg-primary text-black font-black uppercase tracking-widest px-8 py-7 rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(0,255,255,0.3)] group"
               >
                 <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
@@ -77,7 +79,7 @@ function PublicArenaPage() {
           </div>
 
           <Button 
-            onClick={() => setModalOpen(true)}
+            onClick={() => setShowCreateBetModal(true)}
             size="lg"
             className="h-16 px-12 rounded-2xl bg-primary text-black font-black uppercase tracking-[0.2em] shadow-[0_0_40px_rgba(0,255,255,0.3)] hover:scale-105 transition-all"
           >
@@ -92,11 +94,10 @@ function PublicArenaPage() {
           </div>
         </div>
       </div>
-
-      <CreateBetModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </MainLayout>
   );
 }
+
 
 const Zap = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

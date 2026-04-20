@@ -86,6 +86,13 @@ pub fn escrow_pda(duel_state: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"escrow", duel_state.as_ref()], &prog_id())
 }
 
+pub fn ticket_pda(duel_state: &Pubkey, ticket_id: u64) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"ticket", duel_state.as_ref(), &ticket_id.to_le_bytes()],
+        &prog_id(),
+    )
+}
+
 // ── SVM setup ──
 
 pub fn setup() -> LiteSVM {
@@ -259,14 +266,50 @@ pub fn ix_create_duel_full(
     price_feed_id_b: [u8; 32],
     remaining_accounts: &[Pubkey],
 ) -> Instruction {
+    ix_create_duel_full_with_mode(
+        creator,
+        duel_count,
+        price_feed_id,
+        target_price,
+        condition,
+        stake_amount,
+        target_opponent,
+        expires_at,
+        lower_bound,
+        upper_bound,
+        price_feed_id_b,
+        anturix::state::DuelMode::Private1v1,
+        anturix::state::Side::Up,
+        remaining_accounts,
+    )
+}
+
+pub fn ix_create_duel_full_with_mode(
+    creator: &Pubkey,
+    duel_count: u64,
+    price_feed_id: [u8; 32],
+    target_price: i64,
+    condition: anturix::state::Condition,
+    stake_amount: u64,
+    target_opponent: Option<Pubkey>,
+    expires_at: i64,
+    lower_bound: i64,
+    upper_bound: i64,
+    price_feed_id_b: [u8; 32],
+    mode: anturix::state::DuelMode,
+    creator_side: anturix::state::Side,
+    remaining_accounts: &[Pubkey],
+) -> Instruction {
     let (profile, _) = profile_pda(creator);
     let (duel, _) = duel_pda(creator, duel_count);
     let (escrow, _) = escrow_pda(&duel);
+    let (creator_ticket, _) = ticket_pda(&duel, 0);
 
     let anchor_accounts = anturix::accounts::CreateDuel {
         creator: ap(creator),
         creator_profile: ap(&profile),
         duel_state: ap(&duel),
+        creator_ticket: ap(&creator_ticket),
         escrow: ap(&escrow),
         system_program: sys_id(),
     };
@@ -289,43 +332,77 @@ pub fn ix_create_duel_full(
             lower_bound,
             upper_bound,
             price_feed_id_b,
+            mode,
+            creator_side,
         }.data(),
     }
 }
 
 pub fn ix_accept_duel(opponent: &Pubkey, duel_state: &Pubkey) -> Instruction {
+    ix_accept_duel_with_params(
+        opponent,
+        duel_state,
+        1,
+        anturix::state::Side::Down,
+        100_000_000,
+    )
+}
+
+pub fn ix_accept_duel_with_params(
+    opponent: &Pubkey,
+    duel_state: &Pubkey,
+    ticket_id: u64,
+    side: anturix::state::Side,
+    amount: u64,
+) -> Instruction {
     let (opponent_profile, _) = profile_pda(opponent);
     let (escrow, _) = escrow_pda(duel_state);
+    let (ticket, _) = ticket_pda(duel_state, ticket_id);
 
     build_ix(
         anturix::accounts::AcceptDuel {
             opponent: ap(opponent),
             opponent_profile: ap(&opponent_profile),
             duel_state: ap(duel_state),
+            ticket: ap(&ticket),
             escrow: ap(&escrow),
             system_program: sys_id(),
         },
-        anturix::instruction::AcceptDuel {}.data(),
+        anturix::instruction::AcceptDuel {
+            side,
+            amount,
+        }.data(),
+    )
+}
+
+pub fn ix_claim_ticket(owner: &Pubkey, duel_state: &Pubkey, ticket_id: u64) -> Instruction {
+    let (ticket, _) = ticket_pda(duel_state, ticket_id);
+    let (escrow, _) = escrow_pda(duel_state);
+
+    build_ix(
+        anturix::accounts::ClaimTicket {
+            owner: ap(owner),
+            duel_state: ap(duel_state),
+            ticket: ap(&ticket),
+            escrow: ap(&escrow),
+            system_program: sys_id(),
+        },
+        anturix::instruction::ClaimTicket {}.data(),
     )
 }
 
 pub fn ix_resolve_duel(
     resolver: &Pubkey,
     duel_state: &Pubkey,
-    creator: &Pubkey,
-    opponent: &Pubkey,
+    _creator: &Pubkey,
+    _opponent: &Pubkey,
     price_update: &Pubkey,
 ) -> Instruction {
-    let (creator_profile, _) = profile_pda(creator);
-    let (opponent_profile, _) = profile_pda(opponent);
-
     build_ix(
         anturix::accounts::ResolveDuel {
             resolver: ap(resolver),
             duel_state: ap(duel_state),
             price_update: ap(price_update),
-            creator_profile: ap(&creator_profile),
-            opponent_profile: ap(&opponent_profile),
         },
         anturix::instruction::ResolveDuel {}.data(),
     )
@@ -334,20 +411,15 @@ pub fn ix_resolve_duel(
 pub fn ix_resolve_duel_with_remaining(
     resolver: &Pubkey,
     duel_state: &Pubkey,
-    creator: &Pubkey,
-    opponent: &Pubkey,
+    _creator: &Pubkey,
+    _opponent: &Pubkey,
     price_update: &Pubkey,
     remaining_accounts: &[Pubkey],
 ) -> Instruction {
-    let (creator_profile, _) = profile_pda(creator);
-    let (opponent_profile, _) = profile_pda(opponent);
-
     let anchor_accounts = anturix::accounts::ResolveDuel {
         resolver: ap(resolver),
         duel_state: ap(duel_state),
         price_update: ap(price_update),
-        creator_profile: ap(&creator_profile),
-        opponent_profile: ap(&opponent_profile),
     };
     let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
 

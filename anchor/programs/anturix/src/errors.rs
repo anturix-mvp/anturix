@@ -38,4 +38,15 @@ pub enum AnturixError {
     InvalidSecondFeed,
     #[msg("Missing required price update account in remaining_accounts")]
     MissingPriceAccount,
+    #[msg("Staked amount does not match the required amount for this duel")]
+    WrongStakeAmount,
+    #[msg("Invalid stake amount")]
+    InvalidStakeAmount,
+    #[msg("Insufficient arena liquidity for requested odds")]
+    InsufficientLiquidity,
+    #[msg("Ticket already claimed")]
+    TicketAlreadyClaimed,
+    #[msg("Ticket does not belong to this duel")]
+    InvalidTicket,
 }
+

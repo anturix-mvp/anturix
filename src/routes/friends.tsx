@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 export const Route = createFileRoute('/friends')({
   head: () => ({
     meta: [
-      { title: 'Amigos — Anturix' },
-      { name: 'description', content: 'Conecta con otros apostadores en Anturix.' },
+      { title: 'Friends — Anturix' },
+      { name: 'description', content: 'Connect with other predictors on Anturix.' },
     ],
   }),
   component: FriendsPage,
@@ -19,7 +19,7 @@ function FriendsPage() {
 
   return (
     <MainLayout>
-      <h1 className="text-xl font-heading font-bold text-foreground mb-6">Amigos</h1>
+      <h1 className="text-xl font-heading font-bold text-foreground mb-6">Friends</h1>
 
       <div className="space-y-3">
         {friends.map(user => (
@@ -32,17 +32,17 @@ function FriendsPage() {
               </div>
               <p className="text-xs text-muted-foreground">{user.rank} · {user.wins}W/{user.losses}L · {user.winRate}% WR</p>
               {user.streak > 0 && (
-                <p className="text-[10px] text-accent">🔥 {user.streak} racha</p>
+                <p className="text-[10px] text-accent">🔥 {user.streak} streak</p>
               )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="gap-1">
                 <Swords className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Retar</span>
+                <span className="hidden sm:inline">Challenge</span>
               </Button>
               <Button variant="cyan" size="sm" className="gap-1">
                 <UserPlus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Seguir</span>
+                <span className="hidden sm:inline">Follow</span>
               </Button>
             </div>
           </div>
@@ -51,3 +51,4 @@ function FriendsPage() {
     </MainLayout>
   );
 }
+

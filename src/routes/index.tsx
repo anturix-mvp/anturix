@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { CreateBetModal } from "@/components/bet/CreateBetModal";
 import { Swords, Zap, Share2, Shield, ArrowRight, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
@@ -10,6 +9,7 @@ import {
   type RecentDuel,
   isPlayableRecentDuel,
 } from "@/lib/arena";
+import { useWalletContext } from "@/contexts/WalletContext";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { openCreateBetModal } = useWalletContext();
   const [recentDuel, setRecentDuel] = useState<RecentDuel | null>(null);
 
   useEffect(() => {
@@ -67,18 +67,29 @@ function LandingPage() {
           </p>
         </div>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
         <div
-          className="hero-fade-up relative z-10"
+          className="hero-fade-up relative z-10 flex justify-center"
           style={{ animationDelay: "320ms" }}
         >
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            size="lg"
-            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
-          >
-            CREATE 1v1 DUEL 🔥
-          </Button>
+          <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Button
+              onClick={() => openCreateBetModal("standard")}
+              size="lg"
+              className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
+            >
+              CREATE 1v1 DUEL 🔥
+            </Button>
+
+            <Button
+              onClick={() => openCreateBetModal("coinflip")}
+              size="lg"
+              variant="outline"
+              className="h-14 sm:h-20 px-6 sm:px-8 text-sm sm:text-base font-black tracking-[0.12em] uppercase border-primary/45 bg-black/45 text-foreground hover:text-primary hover:bg-black/70 hover:border-primary/70 shadow-[0_0_20px_rgba(0,255,255,0.12)]"
+            >
+              ⚡ Fast Coin Flip
+            </Button>
+          </div>
         </div>
 
         <div
@@ -172,11 +183,6 @@ function LandingPage() {
             </p>
           </div>
         </div>
-
-        <CreateBetModal
-          open={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
       </div>
     </MainLayout>
   );

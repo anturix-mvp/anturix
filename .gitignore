@@ -36,3 +36,4 @@ anchor/target/
 anchor/**/admin-keypair.json
 *-keypair.json
 !anchor/Anchor.toml
+.vercel

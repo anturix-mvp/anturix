@@ -20,6 +20,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DuelDuelIdRouteImport } from './routes/duel.$duelId'
+import { Route as DuelLegacyDuelDuelIdRouteImport } from './routes/duel.$legacy.duel.$duelId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -76,6 +77,11 @@ const DuelDuelIdRoute = DuelDuelIdRouteImport.update({
   path: '/duel/$duelId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DuelLegacyDuelDuelIdRoute = DuelLegacyDuelDuelIdRouteImport.update({
+  id: '/duel/$legacy/duel/$duelId',
+  path: '/duel/$legacy/duel/$duelId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/duel/$duelId': typeof DuelDuelIdRoute
+  '/duel/$legacy/duel/$duelId': typeof DuelLegacyDuelDuelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/duel/$duelId': typeof DuelDuelIdRoute
+  '/duel/$legacy/duel/$duelId': typeof DuelLegacyDuelDuelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/duel/$duelId': typeof DuelDuelIdRoute
+  '/duel/$legacy/duel/$duelId': typeof DuelLegacyDuelDuelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/duel/$duelId'
+    | '/duel/$legacy/duel/$duelId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/duel/$duelId'
+    | '/duel/$legacy/duel/$duelId'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/duel/$duelId'
+    | '/duel/$legacy/duel/$duelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   DuelDuelIdRoute: typeof DuelDuelIdRoute
+  DuelLegacyDuelDuelIdRoute: typeof DuelLegacyDuelDuelIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DuelDuelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/duel/$legacy/duel/$duelId': {
+      id: '/duel/$legacy/duel/$duelId'
+      path: '/duel/$legacy/duel/$duelId'
+      fullPath: '/duel/$legacy/duel/$duelId'
+      preLoaderRoute: typeof DuelLegacyDuelDuelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   DuelDuelIdRoute: DuelDuelIdRoute,
+  DuelLegacyDuelDuelIdRoute: DuelLegacyDuelDuelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

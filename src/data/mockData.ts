@@ -28,51 +28,52 @@ export const currentUser: User = mockUsers[0];
 
 export const mockDuels: Duel[] = [
   {
-    id: 'd1', title: 'Smart-Banter Duelo', eventLabel: 'CHAMPIONS LEAGUE: REAL MADRID (RM) VS. FC BARCELONA (FC B)',
+    id: 'd1', title: 'Smart-Banter Duel', eventLabel: 'CHAMPIONS LEAGUE: REAL MADRID (RM) VS. FC BARCELONA (FC B)',
     betAmount: 10, challenger: mockUsers[0], opponent: mockUsers[1], status: 'active',
     communityBacking: { challenger: 238, opponent: 127 }, percentage: { challenger: 65, opponent: 35 },
     totalPool: 25.5, createdAt: '2026-04-12T18:00:00Z',
   },
   {
-    id: 'd2', title: 'Smart-Banter Duelo', eventLabel: 'UFC 310: ADESANYA VS. PEREIRA III',
+    id: 'd2', title: 'Smart-Banter Duel', eventLabel: 'UFC 310: ADESANYA VS. PEREIRA III',
     betAmount: 25, challenger: mockUsers[4], opponent: mockUsers[9], status: 'active',
     communityBacking: { challenger: 412, opponent: 389 }, percentage: { challenger: 52, opponent: 48 },
     totalPool: 68.2, createdAt: '2026-04-11T20:00:00Z',
   },
   {
-    id: 'd3', title: 'Smart-Banter Duelo', eventLabel: 'PREMIER LEAGUE: ARSENAL VS. MAN CITY',
+    id: 'd3', title: 'Smart-Banter Duel', eventLabel: 'PREMIER LEAGUE: ARSENAL VS. MAN CITY',
     betAmount: 5, challenger: mockUsers[7], opponent: mockUsers[6], status: 'active',
     communityBacking: { challenger: 156, opponent: 201 }, percentage: { challenger: 44, opponent: 56 },
     totalPool: 15.8, createdAt: '2026-04-13T10:00:00Z',
   },
   {
-    id: 'd4', title: 'Crypto Duelo', eventLabel: 'BTC ABOVE $70,000',
+    id: 'd4', title: 'Crypto Duel', eventLabel: 'BTC ABOVE $70,000',
     betAmount: 2, challenger: mockUsers[3], opponent: mockUsers[0], status: 'active',
     communityBacking: { challenger: 89, opponent: 134 }, percentage: { challenger: 40, opponent: 60 },
     totalPool: 12.4, createdAt: '2026-04-14T09:00:00Z',
     crypto: { asset: 'BTC', condition: 'above', targetPrice: 70000 },
   },
   {
-    id: 'd5', title: 'Crypto Duelo', eventLabel: 'ETH CERRARÁ EN IMPAR',
+    id: 'd5', title: 'Crypto Duel', eventLabel: 'ETH WILL CLOSE ON ODD',
     betAmount: 1, challenger: mockUsers[5], opponent: mockUsers[6], status: 'active',
     communityBacking: { challenger: 67, opponent: 72 }, percentage: { challenger: 48, opponent: 52 },
     totalPool: 5.3, createdAt: '2026-04-14T12:00:00Z',
     crypto: { asset: 'ETH', condition: 'odd', expiresLabel: '4:00 PM' },
   },
   {
-    id: 'd6', title: 'Crypto Duelo', eventLabel: 'SOL vs BTC — CARRERA AL PRECIO',
+    id: 'd6', title: 'Crypto Duel', eventLabel: 'SOL vs BTC — PRICE RACE',
     betAmount: 5, challenger: mockUsers[7], opponent: mockUsers[4], status: 'active',
     communityBacking: { challenger: 201, opponent: 178 }, percentage: { challenger: 53, opponent: 47 },
     totalPool: 22.1, createdAt: '2026-04-14T08:00:00Z',
     crypto: { asset: 'SOL', condition: 'first_to', targetPrice: 160, assetB: 'BTC', targetPriceB: 72000 },
   },
   {
-    id: 'd7', title: 'Crypto Duelo', eventLabel: 'BTC TOCARÁ $75K — KAMIKAZE',
+    id: 'd7', title: 'Crypto Duel', eventLabel: 'BTC WILL TOUCH $75K — KAMIKAZE',
     betAmount: 3, challenger: mockUsers[2], opponent: mockUsers[8], status: 'active',
     communityBacking: { challenger: 145, opponent: 98 }, percentage: { challenger: 60, opponent: 40 },
     totalPool: 9.8, createdAt: '2026-04-14T14:00:00Z',
     crypto: { asset: 'BTC', condition: 'one_touch', targetPrice: 75000 },
   },
+
 ];
 
 export const mockPredictions: Prediction[] = [

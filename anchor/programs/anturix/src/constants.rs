@@ -10,3 +10,9 @@ pub const MIN_EXPIRY_DURATION: i64 = 60; // minimum 60 seconds before expiry
 pub const SEED_PROFILE: &[u8] = b"profile";
 pub const SEED_DUEL: &[u8] = b"duel";
 pub const SEED_ESCROW: &[u8] = b"escrow";
+pub const SEED_TICKET: &[u8] = b"ticket";
+
+pub const ODDS_SCALE_BPS: u64 = 10_000;
+pub const MIN_LOCKED_ODDS_BPS: u64 = 10_100; // 1.01x minimum
+pub const MAX_LOCKED_ODDS_BPS: u64 = 100_000; // 10.0x maximum
+pub const DEFAULT_START_ODDS_BPS: u64 = 20_000; // 2.0x

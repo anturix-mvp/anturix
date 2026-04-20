@@ -4,13 +4,14 @@ import { currentUser } from '@/data/mockData';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { useWalletContext } from '@/contexts/WalletContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useTheme, type AccentColor } from '@/contexts/ThemeContext';
 import {
   User, Bell, Shield, Palette, Wallet, Globe, LogOut, ChevronRight, ChevronDown,
   Camera, Save, Eye, EyeOff, Smartphone, Mail, MessageSquare, Sun, Moon, Monitor,
   Check,
 } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,8 @@ import { Button } from '@/components/ui/button';
 export const Route = createFileRoute('/settings')({
   head: () => ({
     meta: [
-      { title: 'Configuración — Anturix' },
-      { name: 'description', content: 'Configura tu cuenta de Anturix.' },
+      { title: 'Settings — Anturix' },
+      { name: 'description', content: 'Configure your Anturix account.' },
     ],
   }),
   component: SettingsPage,
@@ -45,11 +46,11 @@ function saveSettings(data: Record<string, unknown>) {
 
 function SettingsPage() {
   const [openSection, setOpenSection] = useState<SectionKey>(null);
-  const { connected, publicKey, walletName, disconnect, setShowConnectModal } = useWalletContext();
+  const { authenticated, solanaWallet, logout, login } = useAuth();
   const { theme, accent: accentColor, setTheme, setAccent: setAccentColor } = useTheme();
 
-  // Profile state — use defaults for SSR, hydrate from localStorage
-  const [username, setUsername] = useState(currentUser.username);
+  // Profile state
+  const [username, setUsername] = useState(authenticated ? (solanaWallet?.address?.slice(0, 8) ?? 'User') : 'Guest');
   const [bio, setBio] = useState('Crypto degen & prediction enthusiast 🎲');
 
   // Security state
@@ -62,7 +63,7 @@ function SettingsPage() {
   const [notifInApp, setNotifInApp] = useState(true);
 
   // Language state
-  const [language, setLanguage] = useState('es');
+  const [language, setLanguage] = useState('en');
 
   // Hydrate from localStorage after mount
   useEffect(() => {
@@ -81,27 +82,27 @@ function SettingsPage() {
 
   const handleSaveProfile = () => {
     saveSettings({ ...loadSettings(), username, bio });
-    toast.success('Perfil actualizado');
+    toast.success('Profile updated');
   };
 
   const handleSaveSecurity = () => {
     saveSettings({ ...loadSettings(), twoFA });
-    toast.success('Configuración de seguridad guardada');
+    toast.success('Security settings saved');
   };
 
   const handleSaveNotifications = () => {
     saveSettings({ ...loadSettings(), notifPush, notifEmail, notifInApp });
-    toast.success('Preferencias de notificación guardadas');
+    toast.success('Notification preferences saved');
   };
 
   const handleSaveLanguage = () => {
     saveSettings({ ...loadSettings(), language });
-    toast.success(language === 'es' ? 'Idioma actualizado' : 'Language updated');
+    toast.success('Language updated');
   };
 
-  const handleLogout = () => {
-    disconnect();
-    toast('Sesión cerrada');
+  const handleLogout = async () => {
+    await logout();
+    toast.success('Logged out successfully');
   };
 
   const accents = [
@@ -112,17 +113,17 @@ function SettingsPage() {
   ];
 
   const settingsItems: { key: SectionKey; icon: typeof User; label: string; desc: string }[] = [
-    { key: 'profile', icon: User, label: 'Perfil', desc: 'Nombre, avatar, bio' },
-    { key: 'wallet', icon: Wallet, label: 'Wallet', desc: 'Conectar o cambiar wallet' },
-    { key: 'security', icon: Shield, label: 'Seguridad', desc: 'Contraseña, 2FA' },
-    { key: 'notifications', icon: Bell, label: 'Notificaciones', desc: 'Push, email, in-app' },
-    { key: 'appearance', icon: Palette, label: 'Apariencia', desc: 'Tema, colores' },
-    { key: 'language', icon: Globe, label: 'Idioma', desc: 'Español, English' },
+    { key: 'profile', icon: User, label: 'Profile', desc: 'Name, avatar, bio' },
+    { key: 'wallet', icon: Wallet, label: 'Wallet', desc: 'Connect or change wallet' },
+    { key: 'security', icon: Shield, label: 'Security', desc: 'Password, 2FA' },
+    { key: 'notifications', icon: Bell, label: 'Notifications', desc: 'Push, email, in-app' },
+    { key: 'appearance', icon: Palette, label: 'Appearance', desc: 'Theme, colors' },
+    { key: 'language', icon: Globe, label: 'Language', desc: 'English, Spanish' },
   ];
 
   const groups = [
-    { title: 'CUENTA', items: settingsItems.slice(0, 3) },
-    { title: 'PREFERENCIAS', items: settingsItems.slice(3) },
+    { title: 'ACCOUNT', items: settingsItems.slice(0, 3) },
+    { title: 'PREFERENCES', items: settingsItems.slice(3) },
   ];
 
   const renderPanel = (key: SectionKey) => {
@@ -138,7 +139,7 @@ function SettingsPage() {
                 </button>
               </div>
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">Nombre de usuario</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Username</label>
                 <Input value={username} onChange={e => setUsername(e.target.value)} className="bg-muted/50 border-border" />
               </div>
             </div>
@@ -154,32 +155,32 @@ function SettingsPage() {
               <p className="text-[10px] text-muted-foreground text-right">{bio.length}/160</p>
             </div>
             <Button variant="cyan" size="sm" className="gap-1.5" onClick={handleSaveProfile}>
-              <Save className="w-3.5 h-3.5" /> Guardar
+              <Save className="w-3.5 h-3.5" /> Save Changes
             </Button>
           </div>
         );
       case 'wallet':
         return (
           <div className="space-y-3">
-            {connected ? (
+            {authenticated && solanaWallet ? (
               <>
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-2 h-2 rounded-full bg-success" />
-                    <span className="text-xs text-success font-medium">Conectada · {walletName}</span>
+                    <span className="text-xs text-success font-medium">Connected · {solanaWallet.walletClientType || 'Privy'}</span>
                   </div>
-                  <p className="font-mono text-xs text-foreground">{publicKey}</p>
+                  <p className="font-mono text-xs text-foreground break-all">{solanaWallet.address}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setShowConnectModal(true)}>Cambiar Wallet</Button>
-                  <Button variant="destructive" size="sm" onClick={() => { disconnect(); toast('Wallet desconectada'); }}>Desconectar</Button>
+                  <Button variant="outline" size="sm" onClick={() => login()}>Change Wallet</Button>
+                  <Button variant="destructive" size="sm" onClick={handleLogout}>Disconnect</Button>
                 </div>
               </>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-3">No tienes una wallet conectada</p>
-                <Button variant="cyan" size="sm" onClick={() => setShowConnectModal(true)} className="gap-1.5">
-                  <Wallet className="w-3.5 h-3.5" /> Conectar Wallet
+                <p className="text-sm text-muted-foreground mb-3">No wallet connected</p>
+                <Button variant="cyan" size="sm" onClick={() => login()} className="gap-1.5">
+                  <Wallet className="w-3.5 h-3.5" /> Connect Wallet
                 </Button>
               </div>
             )}
@@ -189,7 +190,7 @@ function SettingsPage() {
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Contraseña actual</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Current Password</label>
               <div className="relative">
                 <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="bg-muted/50 border-border pr-10" />
                 <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -198,21 +199,21 @@ function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Nueva contraseña</label>
+              <label className="text-xs text-muted-foreground mb-1 block">New Password</label>
               <Input type="password" placeholder="••••••••" className="bg-muted/50 border-border" />
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-3">
                 <Smartphone className="w-4 h-4 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Autenticación 2FA</p>
-                  <p className="text-[10px] text-muted-foreground">Protege tu cuenta con verificación en dos pasos</p>
+                  <p className="text-sm font-medium text-foreground">2FA Authentication</p>
+                  <p className="text-[10px] text-muted-foreground">Protect your account with two-step verification</p>
                 </div>
               </div>
               <Switch checked={twoFA} onCheckedChange={setTwoFA} />
             </div>
             <Button variant="cyan" size="sm" className="gap-1.5" onClick={handleSaveSecurity}>
-              <Save className="w-3.5 h-3.5" /> Guardar
+              <Save className="w-3.5 h-3.5" /> Save Settings
             </Button>
           </div>
         );
@@ -220,9 +221,9 @@ function SettingsPage() {
         return (
           <div className="space-y-3">
             {[
-              { icon: Smartphone, label: 'Push', desc: 'Notificaciones en tu dispositivo', checked: notifPush, set: setNotifPush },
-              { icon: Mail, label: 'Email', desc: 'Resúmenes y alertas por correo', checked: notifEmail, set: setNotifEmail },
-              { icon: MessageSquare, label: 'In-App', desc: 'Notificaciones dentro de la app', checked: notifInApp, set: setNotifInApp },
+              { icon: Smartphone, label: 'Push', desc: 'Notifications on your device', checked: notifPush, set: setNotifPush },
+              { icon: Mail, label: 'Email', desc: 'Summaries and alerts via email', checked: notifEmail, set: setNotifEmail },
+              { icon: MessageSquare, label: 'In-App', desc: 'Direct notifications in the app', checked: notifInApp, set: setNotifInApp },
             ].map(n => (
               <div key={n.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                 <div className="flex items-center gap-3">
@@ -236,7 +237,7 @@ function SettingsPage() {
               </div>
             ))}
             <Button variant="cyan" size="sm" className="gap-1.5" onClick={handleSaveNotifications}>
-              <Save className="w-3.5 h-3.5" /> Guardar
+              <Save className="w-3.5 h-3.5" /> Save Preferences
             </Button>
           </div>
         );
@@ -244,12 +245,12 @@ function SettingsPage() {
         return (
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Tema</p>
+              <p className="text-xs text-muted-foreground mb-2">Theme</p>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { id: 'dark' as const, icon: Moon, label: 'Oscuro' },
-                  { id: 'light' as const, icon: Sun, label: 'Claro' },
-                  { id: 'system' as const, icon: Monitor, label: 'Sistema' },
+                  { id: 'dark' as const, icon: Moon, label: 'Dark' },
+                  { id: 'light' as const, icon: Sun, label: 'Light' },
+                  { id: 'system' as const, icon: Monitor, label: 'System' },
                 ]).map(t => (
                   <button
                     key={t.id}
@@ -265,7 +266,7 @@ function SettingsPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Color de acento</p>
+              <p className="text-xs text-muted-foreground mb-2">Accent Color</p>
               <div className="flex gap-3">
                 {accents.map(a => (
                   <button
@@ -281,7 +282,7 @@ function SettingsPage() {
                 ))}
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Los cambios se aplican en tiempo real ✨</p>
+            <p className="text-[10px] text-muted-foreground mt-2">Changes are applied in real-time ✨</p>
           </div>
         );
       case 'language':
@@ -304,7 +305,7 @@ function SettingsPage() {
               </button>
             ))}
             <Button variant="cyan" size="sm" className="gap-1.5" onClick={handleSaveLanguage}>
-              <Save className="w-3.5 h-3.5" /> Guardar
+              <Save className="w-3.5 h-3.5" /> Save Changes
             </Button>
           </div>
         );
@@ -315,14 +316,16 @@ function SettingsPage() {
 
   return (
     <MainLayout>
-      <h1 className="text-xl font-heading font-bold text-foreground mb-6">Configuración</h1>
+      <h1 className="text-xl font-heading font-bold text-foreground mb-6">Settings</h1>
 
       {/* Profile card */}
       <div className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border mb-6">
-        <img src={currentUser.avatar} alt={currentUser.username} className="w-14 h-14 rounded-full border-2 border-primary" />
+        <img src={currentUser.avatar} alt="avatar" className="w-14 h-14 rounded-full border-2 border-primary" />
         <div>
           <p className="font-bold text-foreground">{username}</p>
-          <p className="text-xs text-muted-foreground">{currentUser.rank} · {currentUser.reputationScore.toLocaleString()} XP</p>
+          <p className="text-xs text-muted-foreground">
+            {authenticated ? 'Devnet Verified' : 'Guest'} · {currentUser.reputationScore.toLocaleString()} XP
+          </p>
         </div>
       </div>
 
@@ -373,8 +376,9 @@ function SettingsPage() {
         className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
       >
         <LogOut className="w-4 h-4" />
-        <span className="text-sm font-medium">Cerrar Sesión</span>
+        <span className="text-sm font-medium">Log Out</span>
       </button>
     </MainLayout>
   );
 }
+

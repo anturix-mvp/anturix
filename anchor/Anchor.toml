@@ -5,7 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-anturix = "HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9"
+anturix = "DBUe2tdR9esX7WxfPgTU9NTiUpB7anLkAnjocVukSEAZ"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
@@ -13,5 +16,3 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "cargo test"
-
-[hooks]

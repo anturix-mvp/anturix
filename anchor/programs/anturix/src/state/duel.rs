@@ -3,43 +3,86 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct DuelState {
     pub creator: Pubkey,              // 32
-    pub opponent: Pubkey,             // 32 — default = public pool, set = targeted/accepted
-    pub price_feed_id: [u8; 32],      // 32 — Pyth price feed ID (asset A)
-    pub target_price: i64,            // 8  — target price (Above/Below)
-    pub condition: Condition,         // 1  — bet type
-    pub stake_amount: u64,            // 8
+    pub visibility: Visibility,       // 1
+    pub condition: Condition,         // 1
+    pub price_feed_id: [u8; 32],      // 32 — Pyth feed (asset A)
+    pub price_feed_id_b: [u8; 32],    // 32 — Pyth feed (AssetRace only)
+    pub target_price: i64,            // 8  — Above/Below threshold
+    pub lower_bound: i64,             // 8  — InRange/OutOfRange lower
+    pub upper_bound: i64,             // 8  — InRange/OutOfRange upper
+    pub start_price_a: i64,           // 8  — AssetRace baseline A
+    pub start_price_b: i64,           // 8  — AssetRace baseline B
+    pub creator_side: Side,           // 1
+    pub creator_stake: u64,           // 8  — Private: required match amount
+    pub side_a_total: u64,            // 8
+    pub side_b_total: u64,            // 8
     pub status: DuelStatus,           // 1
-    pub winner: Option<Pubkey>,       // 1 + 32 = 33
-    pub expires_at: i64,              // 8  — settlement allowed after this timestamp
+    pub winner_side: Option<Side>,    // 1 + 1 = 2
+    pub oracle_price: i64,            // 8  — settlement price snapshot
+    pub expires_at: i64,              // 8
     pub bump: u8,                     // 1
     pub escrow_bump: u8,              // 1
-    pub lower_bound: i64,             // 8  — InRange/OutOfRange lower bound
-    pub upper_bound: i64,             // 8  — InRange/OutOfRange upper bound
-    pub price_feed_id_b: [u8; 32],    // 32 — AssetRace second feed
-    pub start_price_a: i64,           // 8  — AssetRace snapshot at creation
-    pub start_price_b: i64,           // 8  — AssetRace snapshot at creation
 }
 
 impl DuelState {
-    pub const SIZE: usize = 8 + 32 + 32 + 32 + 8 + 1 + 8 + 1 + (1 + 32) + 8 + 1 + 1 + 8 + 8 + 32 + 8 + 8; // 229
+    pub const SIZE: usize = 8 + 32 + 1 + 1 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 1 + 2 + 8 + 8 + 1 + 1; // 200
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+#[account]
+pub struct Position {
+    pub duel: Pubkey,   // 32
+    pub owner: Pubkey,  // 32
+    pub side: Side,     // 1
+    pub stake: u64,     // 8  — cumulative
+    pub bump: u8,       // 1
+}
+
+impl Position {
+    pub const SIZE: usize = 8 + 32 + 32 + 1 + 8 + 1; // 82
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Visibility {
+    Private,
+    Public,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Side {
+    OptionA,
+    OptionB,
+}
+
+impl Side {
+    pub fn as_byte(&self) -> u8 {
+        match self {
+            Side::OptionA => 0,
+            Side::OptionB => 1,
+        }
+    }
+
+    pub fn opposite(&self) -> Side {
+        match self {
+            Side::OptionA => Side::OptionB,
+            Side::OptionB => Side::OptionA,
+        }
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DuelStatus {
-    Pending,
-    Active,
+    Open,
     Resolved,
     Cancelled,
-    Claimed,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Condition {
-    Above,      // creator wins if price > target_price
-    Below,      // creator wins if price < target_price
-    Odd,        // creator wins if last digit of price is odd
-    Even,       // creator wins if last digit of price is even
-    InRange,    // creator wins if lower_bound <= price <= upper_bound
-    OutOfRange, // creator wins if price < lower_bound OR price > upper_bound
-    AssetRace,  // creator wins if asset A outperforms asset B (% gain)
+    Above,      // OPTION_A wins if price > target_price
+    Below,      // OPTION_A wins if price < target_price
+    Odd,        // OPTION_A wins if last digit of price is odd
+    Even,       // OPTION_A wins if last digit of price is even
+    InRange,    // OPTION_A wins if lower_bound <= price <= upper_bound
+    OutOfRange, // OPTION_A wins if price < lower_bound OR price > upper_bound
+    AssetRace,  // OPTION_A wins if asset A outperforms asset B (% gain)
 }

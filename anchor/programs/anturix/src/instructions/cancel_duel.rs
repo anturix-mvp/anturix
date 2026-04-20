@@ -1,34 +1,21 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
-use crate::state::{DuelState, DuelStatus};
-use crate::constants::*;
+use crate::state::{DuelState, DuelStatus, Side};
 use crate::errors::AnturixError;
 use crate::events::DuelCancelled;
 
+/// Creator-initiated early cancel. Allowed only while the opposite side has
+/// zero liquidity. Positions on the creator's side (including the creator's)
+/// withdraw via `claim_refund`.
 pub fn handler(ctx: Context<CancelDuel>) -> Result<()> {
     let duel = &mut ctx.accounts.duel_state;
 
-    require!(duel.status == DuelStatus::Pending, AnturixError::InvalidDuelStatus);
+    require!(duel.status == DuelStatus::Open, AnturixError::InvalidDuelStatus);
 
-    let amount = ctx.accounts.escrow.lamports();
-    let duel_key = duel.key();
-    let escrow_seeds: &[&[u8]] = &[
-        SEED_ESCROW,
-        duel_key.as_ref(),
-        &[duel.escrow_bump],
-    ];
-
-    system_program::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.key(),
-            system_program::Transfer {
-                from: ctx.accounts.escrow.to_account_info(),
-                to: ctx.accounts.creator.to_account_info(),
-            },
-            &[escrow_seeds],
-        ),
-        amount,
-    )?;
+    let opposite_total = match duel.creator_side {
+        Side::OptionA => duel.side_b_total,
+        Side::OptionB => duel.side_a_total,
+    };
+    require!(opposite_total == 0, AnturixError::OppositeSideNotEmpty);
 
     duel.status = DuelStatus::Cancelled;
 
@@ -42,7 +29,6 @@ pub fn handler(ctx: Context<CancelDuel>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct CancelDuel<'info> {
-    #[account(mut)]
     pub creator: Signer<'info>,
 
     #[account(
@@ -50,14 +36,4 @@ pub struct CancelDuel<'info> {
         constraint = duel_state.creator == creator.key() @ AnturixError::InvalidDuelStatus,
     )]
     pub duel_state: Account<'info, DuelState>,
-
-    /// CHECK: escrow PDA
-    #[account(
-        mut,
-        seeds = [SEED_ESCROW, duel_state.key().as_ref()],
-        bump = duel_state.escrow_bump,
-    )]
-    pub escrow: SystemAccount<'info>,
-
-    pub system_program: Program<'info, System>,
 }

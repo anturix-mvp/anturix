@@ -1,11 +1,6 @@
 {
   "buildCommand": "NODE_OPTIONS=--max-old-space-size=6144 bun run build",
   "outputDirectory": "dist/client",
-  "functions": {
-    "api/[[...all]].ts": {
-      "runtime": "edge"
-    }
-  },
   "routes": [
     {
       "handle": "filesystem"

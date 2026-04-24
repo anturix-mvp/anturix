@@ -1,0 +1,29 @@
+# Local dependencies and caches
+node_modules
+.bun
+
+# Build outputs and logs
+dist
+build.log
+build_error.log
+*.log
+
+# Local Vercel metadata
+.vercel
+
+# Git metadata
+.git
+
+# Solana/Anchor local artifacts
+anchor/target/*
+!anchor/target/idl/
+!anchor/target/idl/**
+target
+
+# Local tool/state folders
+.wrangler
+.tanstack
+
+# Local environment files
+.env*
+!.env.example

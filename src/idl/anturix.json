@@ -1,0 +1,1234 @@
+{
+  "address": "HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9",
+  "metadata": {
+    "name": "anturix",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Anturix — gamified SocialFi duels on Solana"
+  },
+  "instructions": [
+    {
+      "name": "cancel_duel",
+      "discriminator": [
+        83,
+        124,
+        224,
+        237,
+        235,
+        44,
+        38,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "signer": true
+        },
+        {
+          "name": "duel_state",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_refund",
+      "discriminator": [
+        15,
+        16,
+        30,
+        161,
+        255,
+        228,
+        97,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "duel_state"
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel_state"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "side",
+          "type": {
+            "defined": {
+              "name": "Side"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim_share",
+      "discriminator": [
+        42,
+        18,
+        161,
+        15,
+        129,
+        155,
+        240,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "duel_state"
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel_state"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "side",
+          "type": {
+            "defined": {
+              "name": "Side"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_duel",
+      "discriminator": [
+        49,
+        28,
+        93,
+        11,
+        75,
+        242,
+        69,
+        165
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "duel_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  117,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              },
+              {
+                "kind": "account",
+                "path": "creator_profile.duel_count",
+                "account": "UserProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_position",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel_state"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "visibility",
+          "type": {
+            "defined": {
+              "name": "Visibility"
+            }
+          }
+        },
+        {
+          "name": "creator_side",
+          "type": {
+            "defined": {
+              "name": "Side"
+            }
+          }
+        },
+        {
+          "name": "stake_amount",
+          "type": "u64"
+        },
+        {
+          "name": "condition",
+          "type": {
+            "defined": {
+              "name": "Condition"
+            }
+          }
+        },
+        {
+          "name": "price_feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "price_feed_id_b",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "target_price",
+          "type": "i64"
+        },
+        {
+          "name": "lower_bound",
+          "type": "i64"
+        },
+        {
+          "name": "upper_bound",
+          "type": "i64"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "force_cancel_duel",
+      "discriminator": [
+        253,
+        76,
+        2,
+        204,
+        211,
+        238,
+        18,
+        208
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "duel_state",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_user_profile",
+      "discriminator": [
+        148,
+        35,
+        126,
+        247,
+        28,
+        169,
+        135,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "join_pool",
+      "discriminator": [
+        14,
+        65,
+        62,
+        16,
+        116,
+        17,
+        195,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "participant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "participant_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "duel_state",
+          "writable": true
+        },
+        {
+          "name": "participant_position",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel_state"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "side",
+          "type": {
+            "defined": {
+              "name": "Side"
+            }
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_duel",
+      "discriminator": [
+        213,
+        162,
+        203,
+        235,
+        151,
+        236,
+        178,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "resolver",
+          "signer": true
+        },
+        {
+          "name": "duel_state",
+          "writable": true
+        },
+        {
+          "name": "price_update"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "DuelState",
+      "discriminator": [
+        149,
+        213,
+        59,
+        165,
+        124,
+        116,
+        145,
+        120
+      ]
+    },
+    {
+      "name": "Position",
+      "discriminator": [
+        170,
+        188,
+        143,
+        228,
+        122,
+        64,
+        247,
+        208
+      ]
+    },
+    {
+      "name": "UserProfile",
+      "discriminator": [
+        32,
+        37,
+        119,
+        205,
+        179,
+        180,
+        13,
+        194
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "DuelCancelled",
+      "discriminator": [
+        138,
+        79,
+        20,
+        163,
+        207,
+        11,
+        111,
+        213
+      ]
+    },
+    {
+      "name": "DuelCreated",
+      "discriminator": [
+        137,
+        77,
+        22,
+        196,
+        90,
+        147,
+        23,
+        37
+      ]
+    },
+    {
+      "name": "DuelResolved",
+      "discriminator": [
+        224,
+        245,
+        214,
+        212,
+        111,
+        151,
+        50,
+        5
+      ]
+    },
+    {
+      "name": "PoolJoined",
+      "discriminator": [
+        79,
+        207,
+        125,
+        205,
+        4,
+        167,
+        178,
+        115
+      ]
+    },
+    {
+      "name": "RefundClaimed",
+      "discriminator": [
+        136,
+        64,
+        242,
+        99,
+        4,
+        244,
+        208,
+        130
+      ]
+    },
+    {
+      "name": "ShareClaimed",
+      "discriminator": [
+        235,
+        144,
+        44,
+        130,
+        190,
+        141,
+        139,
+        176
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "StakeTooLow",
+      "msg": "Stake below minimum"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidDuelStatus",
+      "msg": "Duel not in expected status"
+    },
+    {
+      "code": 6002,
+      "name": "DuelExpired",
+      "msg": "Duel has expired"
+    },
+    {
+      "code": 6003,
+      "name": "DuelNotExpired",
+      "msg": "Duel has not expired yet"
+    },
+    {
+      "code": 6004,
+      "name": "ExactStakeRequired",
+      "msg": "Private duel requires exact stake match"
+    },
+    {
+      "code": 6005,
+      "name": "PrivateAlreadyMatched",
+      "msg": "Private duel already has an opponent"
+    },
+    {
+      "code": 6006,
+      "name": "WrongSide",
+      "msg": "Wrong side for this mode"
+    },
+    {
+      "code": 6007,
+      "name": "SelfDuel",
+      "msg": "Cannot bet against yourself"
+    },
+    {
+      "code": 6008,
+      "name": "UnauthorizedAdmin",
+      "msg": "Unauthorized — not admin"
+    },
+    {
+      "code": 6009,
+      "name": "NotOnWinningSide",
+      "msg": "Caller is not on the winning side"
+    },
+    {
+      "code": 6010,
+      "name": "AlreadyClaimed",
+      "msg": "Position already claimed"
+    },
+    {
+      "code": 6011,
+      "name": "OppositeSideNotEmpty",
+      "msg": "Opposite side has liquidity, cannot cancel"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidExpiry",
+      "msg": "Expiry must be in the future and at least 60 seconds out"
+    },
+    {
+      "code": 6013,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidPriceFeed",
+      "msg": "Price feed ID does not match expected feed"
+    },
+    {
+      "code": 6015,
+      "name": "PriceTooStale",
+      "msg": "Price update is too stale"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidPriceAccount",
+      "msg": "Invalid Pyth price account (wrong owner or data)"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidTargetPrice",
+      "msg": "Target price must be positive"
+    },
+    {
+      "code": 6018,
+      "name": "PriceConfidenceTooWide",
+      "msg": "Oracle confidence interval too wide (>5%), price unreliable"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidBounds",
+      "msg": "Lower bound must be positive and less than upper bound"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidSecondFeed",
+      "msg": "Second price feed required for AssetRace"
+    },
+    {
+      "code": 6021,
+      "name": "MissingPriceAccount",
+      "msg": "Missing required price update account in remaining_accounts"
+    },
+    {
+      "code": 6022,
+      "name": "NoWinningLiquidity",
+      "msg": "Winning side has zero liquidity"
+    },
+    {
+      "code": 6023,
+      "name": "PriceBeforeExpiry",
+      "msg": "Price must be published at or after duel expiry"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidFeedId",
+      "msg": "Price feed ID cannot be zero"
+    }
+  ],
+  "types": [
+    {
+      "name": "Condition",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Above"
+          },
+          {
+            "name": "Below"
+          },
+          {
+            "name": "Odd"
+          },
+          {
+            "name": "Even"
+          },
+          {
+            "name": "InRange"
+          },
+          {
+            "name": "OutOfRange"
+          },
+          {
+            "name": "AssetRace"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DuelCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DuelCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "visibility",
+            "type": "u8"
+          },
+          {
+            "name": "creator_side",
+            "type": "u8"
+          },
+          {
+            "name": "condition",
+            "type": "u8"
+          },
+          {
+            "name": "price_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "price_feed_id_b",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_price",
+            "type": "i64"
+          },
+          {
+            "name": "lower_bound",
+            "type": "i64"
+          },
+          {
+            "name": "upper_bound",
+            "type": "i64"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DuelResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "winner_side",
+            "type": "u8"
+          },
+          {
+            "name": "oracle_price",
+            "type": "i64"
+          },
+          {
+            "name": "oracle_exponent",
+            "type": "i32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DuelState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "visibility",
+            "type": {
+              "defined": {
+                "name": "Visibility"
+              }
+            }
+          },
+          {
+            "name": "condition",
+            "type": {
+              "defined": {
+                "name": "Condition"
+              }
+            }
+          },
+          {
+            "name": "price_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "price_feed_id_b",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_price",
+            "type": "i64"
+          },
+          {
+            "name": "lower_bound",
+            "type": "i64"
+          },
+          {
+            "name": "upper_bound",
+            "type": "i64"
+          },
+          {
+            "name": "start_price_a",
+            "type": "i64"
+          },
+          {
+            "name": "start_price_b",
+            "type": "i64"
+          },
+          {
+            "name": "creator_side",
+            "type": {
+              "defined": {
+                "name": "Side"
+              }
+            }
+          },
+          {
+            "name": "creator_stake",
+            "type": "u64"
+          },
+          {
+            "name": "side_a_total",
+            "type": "u64"
+          },
+          {
+            "name": "side_b_total",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "DuelStatus"
+              }
+            }
+          },
+          {
+            "name": "winner_side",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Side"
+                }
+              }
+            }
+          },
+          {
+            "name": "oracle_price",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "escrow_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DuelStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Resolved"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolJoined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_position_stake",
+            "type": "u64"
+          },
+          {
+            "name": "side_a_total",
+            "type": "u64"
+          },
+          {
+            "name": "side_b_total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "Side"
+              }
+            }
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ShareClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Side",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "OptionA"
+          },
+          {
+            "name": "OptionB"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "wins",
+            "type": "u32"
+          },
+          {
+            "name": "losses",
+            "type": "u32"
+          },
+          {
+            "name": "clown_until",
+            "type": "i64"
+          },
+          {
+            "name": "duel_count",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Visibility",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Private"
+          },
+          {
+            "name": "Public"
+          }
+        ]
+      }
+    }
+  ]
+}

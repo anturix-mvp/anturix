@@ -17,16 +17,57 @@ export interface User {
   penaltyActive?: boolean;
 }
 
+export type CryptoCondition = 'above' | 'below' | 'even' | 'odd' | 'first_to' | 'one_touch';
+export type CryptoAsset = 'SOL' | 'BTC' | 'ETH';
+
+export interface DuelCryptoInfo {
+  asset: CryptoAsset;
+  condition: CryptoCondition;
+  targetPrice?: number;
+  assetB?: CryptoAsset;
+  targetPriceB?: number;
+  expiresLabel?: string; // e.g. "4:00 PM"
+}
+
 export interface Duel {
   id: string;
   title: string;
-  description: string;
+  eventLabel: string;
+  description?: string;
   betAmount: number;
-  creator: string; // Pubkey string
-  opponent: string | null; // Pubkey string or null
-  status: 'pending' | 'active' | 'resolved' | 'claimed';
-  winner: string | null;
-  createdAt: number;
+  challenger: User;
+  opponent: User | null;
+  creator?: string; // Pubkey string for contract
+  status: 'active' | 'pending' | 'completed' | 'resolved' | 'claimed';
+  winner?: string | null;
+  communityBacking?: { challenger: number; opponent: number };
+  percentage?: { challenger: number; opponent: number };
+  totalPool: number;
+  createdAt: string | number;
+  crypto?: DuelCryptoInfo;
+}
+
+export interface Prediction {
+  id: string;
+  expert: User | { username: string };
+  eventLabel: string;
+  odds?: string;
+  unlockPrice: number;
+  sport?: string;
+  hotStreak?: boolean;
+  description?: string;
+  pastPerfect?: number;
+  accuracy?: number;
+}
+
+export interface PokerPool {
+  id: string;
+  title: string;
+  seats?: { occupied: number; total: number };
+  buyIn: number;
+  participants?: User[] | number;
+  status?: 'open' | 'full' | 'in_progress';
+  prizePool?: number;
 }
 
 export interface Achievement {
@@ -36,3 +77,8 @@ export interface Achievement {
   icon: string;
   earned: boolean;
 }
+
+export type FeedItem =
+  | { type: 'duel'; data: Duel }
+  | { type: 'prediction'; data: Prediction }
+  | { type: 'pool'; data: PokerPool };

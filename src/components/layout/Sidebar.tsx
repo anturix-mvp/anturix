@@ -1,19 +1,18 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import {
-  Home,
-  Rss,
-  Search,
-  Users,
-  Trophy,
-  Calendar,
-  Settings,
-} from "lucide-react";
-import { useState } from "react";
-import atxLogo from "@/assets/atx-logo.jpg";
+import { Link, useLocation } from '@tanstack/react-router';
+import { Home, Rss, Search, Users, Trophy, Calendar, Settings, ChevronRight, Globe, Lock, Coins, Sparkles, LayoutDashboard, Database, Swords } from 'lucide-react';
+import { useState } from 'react';
+import atxLogo from '@/assets/atx-logo.jpg';
+
 const navItems = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: '/', icon: Home, label: 'Home' },
+  { to: '/feed', icon: Rss, label: 'Feed' },
+  { to: '/search', icon: Search, label: 'Search' },
+  { to: '/friends', icon: Users, label: 'Friends' },
+  { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+  { to: '/calendar', icon: Calendar, label: 'Calendar' },
 ] as const;
+
+
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -21,60 +20,58 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden md:flex flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}
+      className={`hidden lg:flex flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-56'}`}
     >
       <div className="p-3 flex items-center gap-2">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 group"
-        >
-          <img
-            src={atxLogo}
-            alt="ATX"
-            className="w-9 h-9 rounded-lg object-cover"
-          />
-          {!collapsed && (
-            <span className="font-heading font-bold text-primary text-lg tracking-wider">
-              ANTURIX
-            </span>
-          )}
+        <button onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 group">
+          <img src={atxLogo} alt="ATX" className="w-9 h-9 rounded-lg object-cover" />
+          {!collapsed && <span className="font-heading font-bold text-primary text-xl tracking-wider">ANTURIX</span>}
         </button>
       </div>
 
-      <nav className="flex-1 px-2 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4 px-2">
+          Navigation
+        </p>
+
         {navItems.map((item) => {
           const active = location.pathname === item.to;
           return (
             <Link
               key={item.label}
               to={item.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-sidebar-foreground hover:bg-muted hover:text-foreground"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                active 
+                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]' 
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent'
               }`}
             >
-              <item.icon
-                className={`w-5 h-5 shrink-0 ${active ? "drop-shadow-[0_0_6px_var(--color-primary)]" : ""}`}
-              />
-              {!collapsed && (
-                <span className="text-sm font-medium">{item.label}</span>
-              )}
+              <item.icon className="w-4 h-4 shrink-0" />
+              {!collapsed && <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>}
             </Link>
           );
         })}
+
+        <div className="pt-4 mt-4 border-t border-sidebar-border">
+          <Link
+            to="/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+              location.pathname === '/settings' 
+                ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]' 
+                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent'
+            }`}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="text-[10px] font-black uppercase tracking-widest">Settings</span>}
+          </Link>
+        </div>
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
-        <div
-          className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}
-        >
-          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9945FF] via-[#14F195] to-[#9945FF] bg-[length:200%_100%] animate-solana-gradient shrink-0 shadow-[0_0_14px_rgba(20,241,149,0.45)]" />
-          {!collapsed && (
-            <span className="text-xs font-semibold text-foreground tracking-wide">
-              Powered by Solana
-            </span>
-          )}
+
+      <div className="p-4 border-t border-sidebar-border bg-muted/10">
+        <div className={`flex items-center gap-2 text-muted-foreground ${collapsed ? 'justify-center' : ''}`}>
+          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195] shrink-0 animate-slow-spin" />
+          {!collapsed && <span className="text-[10px] uppercase font-black tracking-widest opacity-50">Powered by Solana</span>}
         </div>
       </div>
     </aside>

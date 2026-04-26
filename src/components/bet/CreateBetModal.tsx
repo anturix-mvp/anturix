@@ -16,6 +16,7 @@ import {
   TrendingUp,
   TrendingDown,
   Lock,
+  Sparkles,
 } from "lucide-react";
 
 const durations = [
@@ -30,13 +31,11 @@ const presetAmounts = [0.1, 0.5, 1, 5, 10];
 
 interface CreateBetModalProps {
   open: boolean;
-  preset?: "standard" | "coinflip";
   onClose: () => void;
 }
 
 export function CreateBetModal({
   open,
-  preset = "standard",
   onClose,
 }: CreateBetModalProps) {
   const { authenticated, ready, solanaWallet, login } = useAuth();
@@ -47,15 +46,13 @@ export function CreateBetModal({
   const [duration, setDuration] = useState("24h");
   const [useCoinToss, setUseCoinToss] = useState(true);
   const [activeCategory, setActiveCategory] = useState<
-    "general" | "crypto" | "sports"
+    "general" | "casino" | "crypto" | "sports"
   >("general");
   const [activeType, setActiveType] = useState<"1v1" | "expert" | "pool">(
     "1v1",
   );
   const [mode, setMode] = useState<"private" | "public">("private");
   const [position, setPosition] = useState<"up" | "down">("up");
-  const [coinSide, setCoinSide] = useState<"heads" | "tails">("heads");
-  const [isFastCoinFlip, setIsFastCoinFlip] = useState(false);
   const [step, setStep] = useState(1);
 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -68,8 +65,6 @@ export function CreateBetModal({
     setUseCoinToss(true);
     setMode("private");
     setPosition("up");
-    setCoinSide("heads");
-    setIsFastCoinFlip(false);
     setStep(1);
   };
 
@@ -111,29 +106,6 @@ export function CreateBetModal({
       }
     }
   }, [open, step, solanaWallet?.address]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (preset === "coinflip") {
-      setMode("private");
-      setActiveCategory("general");
-      setActiveType("1v1");
-      setIsFastCoinFlip(true);
-      setUseCoinToss(false);
-      setTitle("Cyberpunk Coin Flip (VRF)");
-      setDescription(
-        "Instant private Heads/Tails duel settled by VRF oracle. Winner takes payout automatically.",
-      );
-      setStep(3);
-    }
-  }, [open, preset]);
-
-  useEffect(() => {
-    if (isFastCoinFlip) {
-      setPosition(coinSide === "heads" ? "up" : "down");
-    }
-  }, [coinSide, isFastCoinFlip]);
 
   const handleSubmit = async () => {
     if (!ready) {
@@ -187,39 +159,27 @@ export function CreateBetModal({
 
     if (submitting) return;
 
+    if (mode === "public") {
+      toast.info("Public duels coming soon — contract integration in progress");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const resolvedTitle = isFastCoinFlip
-        ? `Cyberpunk Coin Flip: ${coinSide.toUpperCase()} (VRF)`
-        : title;
-      const baseDescription = isFastCoinFlip
-        ? `Fast private coin flip ticket. Picked side: ${coinSide.toUpperCase()}.\n[VRF_COIN_FLIP] Resolve using VRF oracle with provable randomness.`
-        : description;
-
-      const finalDescription =
-        !isFastCoinFlip && useCoinToss
-          ? `${baseDescription}\n\n[COIN_TOSS_RESOLVE] RESOLUTION: Mutual agreement required. If neither party agrees, an automated coin toss will decide the winner.`
-          : baseDescription;
-
-      const resolvedCondition = isFastCoinFlip
-        ? (coinSide === "heads" ? "odd" : "even")
-        : "above";
-
       const duelId = await createDuel(
         activeWallet,
         parsedAmount,
         mode,
         position,
-        resolvedCondition,
+        "above",
       );
 
 
       storeRecentDuel(
         duelId,
-        resolvedTitle.trim() || "Untitled duel",
+        title.trim() || "Untitled duel",
         "pending",
-        finalDescription,
       );
 
       toast.success("ARENA DUEL CREATED! 🔥");
@@ -247,8 +207,7 @@ export function CreateBetModal({
   };
 
   const isStep1Valid =
-    isFastCoinFlip ||
-    (title.trim().length > 0 && description.trim().length > 0);
+    title.trim().length > 0 && description.trim().length > 0;
   const isValid = isStep1Valid && parseFloat(amount) > 0;
   const parsedStakeAmount = parseFloat(amount);
   const hasInsufficientBalance =
@@ -300,7 +259,7 @@ export function CreateBetModal({
 
             {/* Step indicator */}
             <div className="flex items-center gap-2 px-6 pt-6 mb-2">
-              {[1, 2, 3].map((s) => (
+              {[1, 2].map((s) => (
                 <div key={s} className="flex-1">
                   <div className="h-1 rounded-full bg-muted/30 overflow-hidden">
                     <motion.div
@@ -319,68 +278,6 @@ export function CreateBetModal({
               {step === 1 ? (
                 <motion.div
                   key="step1"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="p-6 space-y-6"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => {
-                        setMode("public");
-                        setStep(2);
-                      }}
-                      className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-300"
-                    >
-                      <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group-hover:scale-110 transition-transform">
-                        <div className="relative">
-                          <UsersIcon className="w-10 h-10 text-cyan-400" />
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyan-500 rounded-full animate-pulse" />
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <h4 className="font-heading text-lg font-black tracking-widest text-cyan-400 uppercase">
-                          PUBLIC ARENA
-                        </h4>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
-                          Open challenge. Appears in the global feed for all
-                          users.
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setMode("private");
-                        setStep(2);
-                      }}
-                      className="group relative flex flex-col items-center gap-4 p-8 rounded-3xl border-2 border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300"
-                    >
-                      <div className="w-20 h-20 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 group-hover:scale-110 transition-transform">
-                        <Lock className="w-10 h-10 text-orange-400" />
-                      </div>
-                      <div className="text-center">
-                        <h4 className="font-heading text-lg font-black tracking-widest text-orange-400 uppercase">
-                          PRIVATE DUEL
-                        </h4>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-2 leading-relaxed max-w-[140px] mx-auto">
-                          Invite-only. Generate a unique duel link for your
-                          opponent.
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleClose}
-                    className="w-full py-4 text-[10px] font-black tracking-[0.3em] text-muted-foreground hover:text-foreground uppercase transition-colors"
-                  >
-                    [ CANCEL ]
-                  </button>
-                </motion.div>
-              ) : step === 2 ? (
-                <motion.div
-                  key="step2"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -392,8 +289,14 @@ export function CreateBetModal({
                       {
                         id: "general",
                         label: "GENERAL",
-                        icon: Zap,
+                        icon: Dices,
                         soon: false,
+                      },
+                      {
+                        id: "casino",
+                        label: "CASINO",
+                        icon: Sparkles,
+                        soon: true,
                       },
                       {
                         id: "crypto",
@@ -537,13 +440,13 @@ export function CreateBetModal({
 
                   <div className="flex gap-4">
                     <button
-                      onClick={() => setStep(1)}
+                      onClick={handleClose}
                       className="flex-1 py-5 rounded-2xl bg-muted/20 text-muted-foreground font-black tracking-[0.2em] uppercase hover:bg-muted/30 transition-all text-[10px]"
                     >
-                      ← BACK
+                      [ CANCEL ]
                     </button>
                     <button
-                      onClick={() => setStep(3)}
+                      onClick={() => setStep(2)}
                       disabled={!isStep1Valid}
                       className="flex-[2] py-5 rounded-2xl bg-gradient-to-r from-primary/80 to-accent/80 text-black font-black tracking-[0.2em] uppercase disabled:opacity-20 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/10 text-[10px]"
                     >
@@ -553,7 +456,7 @@ export function CreateBetModal({
                 </motion.div>
               ) : (
                 <motion.div
-                  key="step3"
+                  key="step2"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -710,100 +613,7 @@ export function CreateBetModal({
                       </div>
                     )}
 
-                    {/* Private Mode: Fast Coin Flip */}
-                    {mode === "private" && (
-                      <div className="space-y-4 pt-2 border-t border-border/30">
-                        <div className="flex items-center justify-between gap-3">
-                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
-                            Cyberpunk Coin Flip
-                          </label>
-                          <button
-                            onClick={() => setIsFastCoinFlip((prev) => !prev)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                              isFastCoinFlip
-                                ? "bg-primary/20 border-primary/50 text-primary"
-                                : "bg-muted/20 border-border/40 text-muted-foreground"
-                            }`}
-                          >
-                            {isFastCoinFlip ? "Enabled" : "Enable"}
-                          </button>
-                        </div>
 
-                        {isFastCoinFlip && (
-                          <>
-                            <div className="flex gap-4">
-                              <button
-                                onClick={() => setCoinSide("heads")}
-                                className={`flex-1 flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border-2 transition-all relative overflow-hidden ${
-                                  coinSide === "heads"
-                                    ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] ring-1 ring-cyan-500/50"
-                                    : "bg-muted/10 border-border/50 text-muted-foreground grayscale"
-                                }`}
-                              >
-                                {coinSide === "heads" && (
-                                  <motion.div
-                                    layoutId="coin-glow"
-                                    className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent"
-                                  />
-                                )}
-                                <div
-                                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${coinSide === "heads" ? "border-cyan-500 bg-cyan-500/20" : "border-muted-foreground/30 bg-muted/20"}`}
-                                >
-                                  <span className="text-xl font-black">H</span>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                  Heads
-                                </span>
-                              </button>
-                              <button
-                                onClick={() => setCoinSide("tails")}
-                                className={`flex-1 flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border-2 transition-all relative overflow-hidden ${
-                                  coinSide === "tails"
-                                    ? "bg-magenta-500/10 border-magenta-500 text-magenta-400 shadow-[0_0_30px_rgba(255,0,255,0.3)] ring-1 ring-magenta-500/50"
-                                    : "bg-muted/10 border-border/50 text-muted-foreground grayscale"
-                                } uppercase`}
-                                style={{
-                                  borderColor:
-                                    coinSide === "tails"
-                                      ? "#ff00ff"
-                                      : undefined,
-                                  color:
-                                    coinSide === "tails"
-                                      ? "#ff00ff"
-                                      : undefined,
-                                }}
-                              >
-                                {coinSide === "tails" && (
-                                  <motion.div
-                                    layoutId="coin-glow"
-                                    className="absolute inset-0 bg-gradient-to-br from-magenta-500/10 to-transparent"
-                                  />
-                                )}
-                                <div
-                                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${coinSide === "tails" ? "border-magenta-500 bg-magenta-500/20" : "border-muted-foreground/30 bg-muted/20"}`}
-                                  style={{
-                                    borderColor:
-                                      coinSide === "tails"
-                                        ? "#ff00ff"
-                                        : undefined,
-                                  }}
-                                >
-                                  <span className="text-xl font-black">T</span>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                  Tails
-                                </span>
-                              </button>
-                            </div>
-
-
-                            <p className="text-[9px] text-center text-muted-foreground italic">
-                              Private 1v1 VRF flow. Side locks at creation.
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    )}
 
                     {/* Summary Box */}
                     <div className="relative p-6 rounded-2xl bg-muted/10 border border-border/40 overflow-hidden">
@@ -842,9 +652,7 @@ export function CreateBetModal({
                           </span>
                           <span className="text-[9px] font-black text-foreground uppercase tracking-widest truncate max-w-[150px]">
                             "
-                            {isFastCoinFlip
-                              ? `Coin Flip ${coinSide.toUpperCase()}`
-                              : title || "Untitled"}
+                            {title || "Untitled"}
                             "
                           </span>
                         </div>
@@ -871,7 +679,7 @@ export function CreateBetModal({
 
                   <div className="flex gap-4">
                     <button
-                      onClick={() => setStep(2)}
+                      onClick={() => setStep(1)}
                       className="flex-1 py-5 rounded-2xl border border-border/50 text-muted-foreground font-black tracking-widest uppercase hover:bg-muted/30 transition-all text-[10px]"
                     >
                       ← BACK

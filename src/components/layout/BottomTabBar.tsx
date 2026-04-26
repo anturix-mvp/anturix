@@ -1,5 +1,14 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Plus, Settings, Swords } from "lucide-react";
+import {
+  Home,
+  User,
+  Plus,
+  Bell,
+  Store,
+  Settings,
+  Swords,
+  Lock,
+} from "lucide-react";
 import { useState } from "react";
 import {
   Drawer,
@@ -11,7 +20,10 @@ import { CreateBetModal } from "@/components/bet/CreateBetModal";
 
 const tabs = [
   { to: "/", icon: Home, label: "Home" },
+  { to: "/profile", icon: User, label: "Profile" },
   { to: "/", icon: Plus, label: "Create", fab: true },
+  { to: "/", icon: Bell, label: "Alerts" },
+  { to: "/marketplace", icon: Store, label: "Market" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;
 
@@ -22,7 +34,7 @@ export function BottomTabBar() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/90 backdrop-blur-xl border-t border-border flex items-center justify-around px-2">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/90 backdrop-blur-xl border-t border-border flex items-center justify-around px-2">
         {tabs.map((tab) => {
           const active = location.pathname === tab.to;
           if ("fab" in tab && tab.fab) {
@@ -48,6 +60,53 @@ export function BottomTabBar() {
           );
         })}
       </nav>
+
+      <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DrawerContent className="bg-card border-border">
+          <DrawerHeader>
+            <DrawerTitle className="font-heading text-sm tracking-wider text-foreground">
+              CREATE NEW
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-6 space-y-3">
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                setBetModalOpen(true);
+              }}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-cyan">
+                <Swords className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="font-heading text-sm font-bold text-foreground">
+                  Create Duel
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Duel, prediction or poker pool
+                </p>
+              </div>
+            </button>
+            <button
+              onClick={() => setSheetOpen(false)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center glow-magenta">
+                <Lock className="w-6 h-6 text-accent-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="font-heading text-sm font-bold text-foreground">
+                  Sell Alpha
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Monetize your expert predictions
+                </p>
+              </div>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <CreateBetModal
         open={betModalOpen}

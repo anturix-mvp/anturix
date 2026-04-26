@@ -2,9 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { CreateBetModal } from "@/components/bet/CreateBetModal";
+import { CoinFlipModal } from "@/components/CoinFlipModal";
 import { Swords, Zap, Share2, Shield, ArrowRight, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   loadRecentDuel,
   type RecentDuel,
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/")({
 
 function LandingPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCoinFlipOpen, setIsCoinFlipOpen] = useState(false);
   const [recentDuel, setRecentDuel] = useState<RecentDuel | null>(null);
 
   useEffect(() => {
@@ -35,7 +38,7 @@ function LandingPage() {
 
   return (
     <MainLayout>
-      <div className="hero-ambient hero-noise relative flex flex-col items-center justify-center py-10 sm:py-12 px-4 text-center max-w-5xl mx-auto space-y-10 sm:space-y-12 overflow-hidden">
+      <div className="hero-ambient hero-noise relative flex flex-col items-center justify-center py-10 sm:py-12 px-4 text-center max-w-5xl mx-auto space-y-10 sm:space-y-12 overflow-x-hidden">
         <div className="hero-starfield" />
         {/* Hero Section */}
         <div className="space-y-6 relative z-10">
@@ -67,17 +70,26 @@ function LandingPage() {
           </p>
         </div>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
         <div
-          className="hero-fade-up relative z-10"
+          className="hero-fade-up relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
           style={{ animationDelay: "320ms" }}
         >
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             size="lg"
-            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
+            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
           >
             CREATE 1v1 DUEL 🔥
+          </Button>
+          <Button
+            onClick={() => setIsCoinFlipOpen(true)}
+            size="lg"
+            variant="outline"
+            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)]"
+          >
+            <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-primary mr-2" />
+            FAST COIN FLIP
           </Button>
         </div>
 
@@ -176,6 +188,10 @@ function LandingPage() {
         <CreateBetModal
           open={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
+        />
+        <CoinFlipModal
+          open={isCoinFlipOpen}
+          onClose={() => setIsCoinFlipOpen(false)}
         />
       </div>
     </MainLayout>

@@ -5,9 +5,9 @@ import {
   joinDuel,
   getEntryQuote,
   getMyPositions,
-  claimTicket,
+  claimShare,
+  claimRefund,
   cancelDuel,
-  expireCancelDuel,
   type PositionView,
 } from "@/services/duelContract";
 
@@ -94,7 +94,7 @@ function DuelPage() {
       setLoading(false);
       inFlightRef.current = false;
     }
-  }, [duelId, solanaWallet, walletAddress]);
+  }, [duelId, solanaWallet?.address, walletAddress]);
 
   useEffect(() => {
     fetchDuel();
@@ -125,8 +125,11 @@ function DuelPage() {
               ? "claimed"
               : undefined;
 
-    storeRecentDuel(duelId, duel.title, state);
-  }, [duelId, duel]);
+    // Only store if state actually exists to avoid loop
+    if (state) {
+      storeRecentDuel(duelId, duel.title, state);
+    }
+  }, [duelId, duel?.status, duel?.title]);
 
   const handleJoin = async () => {
     if (!authenticated) {
@@ -144,7 +147,7 @@ function DuelPage() {
     if (
       !isPublicArena &&
       duel &&
-      duel.creator.toString() === solanaWallet.address
+      duel.creator?.toString() === solanaWallet.address
     ) {
       toast.error("You can't join your own duel");
       return;
@@ -182,7 +185,7 @@ function DuelPage() {
     if (!solanaWallet) return;
     setJoining(true);
     try {
-      await expireCancelDuel(solanaWallet, duelId);
+      await cancelDuel(solanaWallet, duelId);
       toast.success("Refund processed successfully! ⚡️");
       fetchDuel();
     } catch (e: any) {
@@ -201,12 +204,19 @@ function DuelPage() {
 
     setClaimingTicketId(ticket.pubkey);
     try {
-      await claimTicket(solanaWallet, duelId, ticket.pubkey);
-      toast.success("Ticket claimed successfully! 🔥");
+      // Determine if duel is cancelled or resolved to call the right instruction
+      const isCancelled = duel?.status?.cancelled !== undefined;
+      if (isCancelled) {
+        await claimRefund(solanaWallet, duelId, ticket.pubkey, ticket.side);
+        toast.success("Refund claimed successfully! 💰");
+      } else {
+        await claimShare(solanaWallet, duelId, ticket.pubkey, ticket.side);
+        toast.success("Prize claimed successfully! 🔥");
+      }
       await fetchDuel();
     } catch (e: any) {
       console.error(e);
-      toast.error("Failed to claim ticket: " + e.message);
+      toast.error("Failed to claim: " + e.message);
     } finally {
       setClaimingTicketId(null);
     }
@@ -277,7 +287,7 @@ function DuelPage() {
     return () => {
       cancelled = true;
     };
-  }, [duel, duelId, joinAmount, joinSide, solanaWallet]);
+  }, [duel?.status, duelId, joinAmount, joinSide, solanaWallet?.address]);
 
   if (loading) {
     return (
@@ -347,33 +357,37 @@ function DuelPage() {
   }
 
   const isCreator =
-    solanaWallet && duel.creator.toString() === solanaWallet.address;
+    solanaWallet && duel?.creator?.toString() === solanaWallet.address;
   const isOpponent =
-    solanaWallet && duel.opponent.toString() === solanaWallet.address;
+    solanaWallet &&
+    (duel?.opponent ?? duel?.targetOpponent)?.toString() ===
+      solanaWallet.address;
   const statusObj = duel.status ?? {};
-  const isLive = !!statusObj.active;
-  const isPending = !!statusObj.pending;
+  const isLive = !!statusObj.active || !!statusObj.open;
+  const isPending = !!statusObj.pending || !!statusObj.open;
   const isCancelled = !!statusObj.cancelled;
   const isResolved = !!statusObj.resolved || !!statusObj.claimed || isCancelled;
 
-  const isPublicArena = !!duel.mode?.publicArena;
-  const poolUp = Number(duel.poolUpTotal?.toString() || "0") / 1e9;
-  const poolDown = Number(duel.poolDownTotal?.toString() || "0") / 1e9;
+  const isPublicArena = !!(duel.mode?.publicArena || duel.visibility?.public || duel.visibility?.Public);
+  const poolUp = Number((duel.poolUpTotal ?? duel.sideATotal ?? duel.side_a_total)?.toString() || "0") / 1e9;
+  const poolDown = Number((duel.poolDownTotal ?? duel.sideBTotal ?? duel.side_b_total)?.toString() || "0") / 1e9;
   const totalPool = poolUp + poolDown;
 
-  const creatorSide = !!duel.creatorSide?.up ? "up" : "down";
-  const winner = duel.winner ? duel.winner.toString() : null;
-  const creator = duel.creator.toString();
-  const opponent = duel.opponent.toString();
+  const creatorSide = !!(duel.creatorSide?.up || duel.creatorSide?.optionA || duel.creatorSide?.OptionA || duel.creator_side?.optionA || duel.creator_side?.OptionA) ? "up" : "down";
+  const winner = duel?.winner ? duel.winner.toString() : null;
+  const creator = duel?.creator?.toString() ?? "";
+  const opponent =
+    (duel?.opponent ?? duel?.targetOpponent ?? duel?.target_opponent)?.toString() ??
+    "11111111111111111111111111111111";
   const hasOpponent =
     opponent !== "11111111111111111111111111111111" ||
-    totalPool > Number(duel.stakeAmount?.toString() || "0") / 1e9;
+    totalPool > Number((duel.stakeAmount ?? duel.creatorStake ?? duel.creator_stake)?.toString() || "0") / 1e9;
   const stakeLamports =
-    typeof duel.stakeAmount?.toString === "function"
-      ? Number(duel.stakeAmount.toString())
-      : Number(duel.stakeAmount);
+    typeof (duel.stakeAmount ?? duel.creatorStake ?? duel.creator_stake)?.toString === "function"
+      ? Number((duel.stakeAmount ?? duel.creatorStake ?? duel.creator_stake).toString())
+      : Number(duel.stakeAmount ?? duel.creatorStake ?? duel.creator_stake);
   const prizePoolSol = isPublicArena ? totalPool : (stakeLamports / 1e9) * 2;
-  const winningSide = duel.winningSide?.up ? "up" : "down";
+  const winningSide = !!(duel.winningSide?.up || duel.winningSide?.optionA || duel.winningSide?.OptionA || duel.winner_side?.optionA || duel.winner_side?.OptionA) ? "up" : "down";
   const claimableTickets = positions.filter(
     (ticket) => isResolved && !ticket.claimed && ticket.side === winningSide,
   );
@@ -529,11 +543,17 @@ function DuelPage() {
                     Your Potential Payout
                   </p>
                   <p className="text-lg font-black text-foreground mt-1">
-                    {entryQuote.payoutSol > 0
-                      ? `${entryQuote.payoutSol.toFixed(4)} SOL`
-                      : "Insufficient market liquidity"}
+                    {!isPublicArena ? (
+                      <span className="text-primary">
+                        2.00x · {(stakeLamports * 2 / 1e9).toFixed(4)} SOL
+                      </span>
+                    ) : entryQuote.payoutSol > 0 ? (
+                      `${entryQuote.payoutSol.toFixed(4)} SOL`
+                    ) : (
+                      "Awaiting opponents..."
+                    )}
                   </p>
-                  {entryQuote.odds > 0 && (
+                  {isPublicArena && entryQuote.odds > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Locked Odds: {entryQuote.odds.toFixed(2)}x at entry
                     </p>
@@ -587,10 +607,14 @@ function DuelPage() {
                   </p>
                   <p className="text-xs font-bold text-foreground">
                     {isPublicArena
-                      ? `${(isPublicArena ? (creatorSide === "up" ? poolDown : poolUp) : 0).toFixed(2)} SOL`
+                      ? `${((creatorSide === "up" ? poolDown : poolUp)).toFixed(2)} SOL`
                       : hasOpponent
                         ? shortAddress(opponent)
-                        : "Waiting..."}
+                        : (
+                          <span className="animate-pulse flex items-center gap-1.5 justify-center">
+                            ⏳ Waiting for opponent...
+                          </span>
+                        )}
                   </p>
                 </div>
               </div>

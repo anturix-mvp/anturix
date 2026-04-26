@@ -20,16 +20,31 @@ export function WalletDropdown() {
   const [balance, setBalance] = useState(0);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
+      if (ref.current && !ref.current.contains(e.target as Node) && 
+          buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
         setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const toggleDropdown = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+    setOpen(!open);
+  };
 
   useEffect(() => {
     if (publicKey) {
@@ -69,9 +84,10 @@ export function WalletDropdown() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        ref={buttonRef}
+        onClick={toggleDropdown}
         className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 transition-all duration-200"
       >
         <div className="w-4 h-4 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195] animate-slow-spin" />
@@ -88,11 +104,18 @@ export function WalletDropdown() {
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={ref}
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-64 glass-card cyber-corners border border-border overflow-hidden z-50"
+            style={{ 
+              position: 'fixed',
+              top: dropdownPos.top,
+              right: dropdownPos.right,
+              zIndex: 9999
+            }}
+            className="w-64 glass-card cyber-corners border border-border overflow-hidden"
           >
             <div className="cyber-corners-bottom p-3 space-y-1">
               {/* Wallet info */}
@@ -103,7 +126,7 @@ export function WalletDropdown() {
                     Connected · {walletName}
                   </span>
                 </div>
-                <p className="font-mono text-xs text-foreground">{publicKey}</p>
+                <p className="font-mono text-[10px] text-foreground break-all opacity-70 mb-1">{publicKey}</p>
                 <p className="font-heading text-lg font-bold text-foreground mt-1">
                   {balance.toFixed(2)}{" "}
                   <span className="text-xs text-muted-foreground">SOL</span>

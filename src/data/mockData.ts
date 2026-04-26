@@ -1,4 +1,4 @@
-import type { User, Achievement } from '@/types/anturix';
+import type { User, Duel, Prediction, PokerPool, FeedItem, Achievement } from '@/types/anturix';
 
 import avatarCryptoAlpha from '@/assets/avatars/avatar-cryptoalpha.png';
 import avatarBettingNewb from '@/assets/avatars/avatar-bettingnewb.png';
@@ -26,6 +26,84 @@ export const mockUsers: User[] = [
 
 export const currentUser: User = mockUsers[0];
 
+export const mockDuels: Duel[] = [
+  {
+    id: 'd1', title: 'Smart-Banter Duel', eventLabel: 'CHAMPIONS LEAGUE: REAL MADRID (RM) VS. FC BARCELONA (FC B)',
+    betAmount: 10, challenger: mockUsers[0], opponent: mockUsers[1], status: 'active',
+    communityBacking: { challenger: 238, opponent: 127 }, percentage: { challenger: 65, opponent: 35 },
+    totalPool: 25.5, createdAt: '2026-04-12T18:00:00Z',
+  },
+  {
+    id: 'd2', title: 'Smart-Banter Duel', eventLabel: 'UFC 310: ADESANYA VS. PEREIRA III',
+    betAmount: 25, challenger: mockUsers[4], opponent: mockUsers[9], status: 'active',
+    communityBacking: { challenger: 412, opponent: 389 }, percentage: { challenger: 52, opponent: 48 },
+    totalPool: 68.2, createdAt: '2026-04-11T20:00:00Z',
+  },
+  {
+    id: 'd3', title: 'Smart-Banter Duel', eventLabel: 'PREMIER LEAGUE: ARSENAL VS. MAN CITY',
+    betAmount: 5, challenger: mockUsers[7], opponent: mockUsers[6], status: 'active',
+    communityBacking: { challenger: 156, opponent: 201 }, percentage: { challenger: 44, opponent: 56 },
+    totalPool: 15.8, createdAt: '2026-04-13T10:00:00Z',
+  },
+  {
+    id: 'd4', title: 'Crypto Duel', eventLabel: 'BTC ABOVE $70,000',
+    betAmount: 2, challenger: mockUsers[3], opponent: mockUsers[0], status: 'active',
+    communityBacking: { challenger: 89, opponent: 134 }, percentage: { challenger: 40, opponent: 60 },
+    totalPool: 12.4, createdAt: '2026-04-14T09:00:00Z',
+    crypto: { asset: 'BTC', condition: 'above', targetPrice: 70000 },
+  },
+  {
+    id: 'd5', title: 'Crypto Duel', eventLabel: 'ETH CLOSES ODD',
+    betAmount: 1, challenger: mockUsers[5], opponent: mockUsers[6], status: 'active',
+    communityBacking: { challenger: 67, opponent: 72 }, percentage: { challenger: 48, opponent: 52 },
+    totalPool: 5.3, createdAt: '2026-04-14T12:00:00Z',
+    crypto: { asset: 'ETH', condition: 'odd', expiresLabel: '4:00 PM' },
+  },
+  {
+    id: 'd6', title: 'Crypto Duel', eventLabel: 'SOL vs BTC — PRICE RACE',
+    betAmount: 5, challenger: mockUsers[7], opponent: mockUsers[4], status: 'active',
+    communityBacking: { challenger: 201, opponent: 178 }, percentage: { challenger: 53, opponent: 47 },
+    totalPool: 22.1, createdAt: '2026-04-14T08:00:00Z',
+    crypto: { asset: 'SOL', condition: 'first_to', targetPrice: 160, assetB: 'BTC', targetPriceB: 72000 },
+  },
+  {
+    id: 'd7', title: 'Crypto Duel', eventLabel: 'BTC TO TOUCH $75K — KAMIKAZE',
+    betAmount: 3, challenger: mockUsers[2], opponent: mockUsers[8], status: 'active',
+    communityBacking: { challenger: 145, opponent: 98 }, percentage: { challenger: 60, opponent: 40 },
+    totalPool: 9.8, createdAt: '2026-04-14T14:00:00Z',
+    crypto: { asset: 'BTC', condition: 'one_touch', targetPrice: 75000 },
+  },
+];
+
+export const mockPredictions: Prediction[] = [
+  { id: 'p1', expert: mockUsers[2], eventLabel: 'NBA PARLAY: LAKERS + CELTICS + NUGGETS WINS', odds: 'Lakers -150 | Celtics +120 | Nuggets +110', unlockPrice: 0.5, sport: 'NBA', hotStreak: true, description: 'Triple lock parlay with detailed analysis.', pastPerfect: 45 },
+  { id: 'p2', expert: mockUsers[3], eventLabel: 'EPL: LIVERPOOL VS CHELSEA — EXACT SCORE', odds: 'Liverpool 2-1 @ +350', unlockPrice: 0.3, sport: 'Soccer', description: 'Based on historical H2H data.', pastPerfect: 32 },
+  { id: 'p3', expert: mockUsers[5], eventLabel: 'NFL WEEK 14: CHIEFS SPREAD ANALYSIS', odds: 'Chiefs -7.5 @ -110', unlockPrice: 1.0, sport: 'NFL', hotStreak: true, description: 'Deep dive into Chiefs defense matchup.', pastPerfect: 61 },
+  { id: 'p4', expert: mockUsers[7], eventLabel: 'CRYPTO: BTC PRICE EOD PREDICTION', odds: 'BTC > $95K @ +200', unlockPrice: 0.8, sport: 'Crypto', description: 'On-chain analysis and whale tracking.', pastPerfect: 28 },
+  { id: 'p5', expert: mockUsers[9], eventLabel: 'MMA: FIGHT NIGHT MAIN EVENT WINNER', odds: 'Fighter A by KO Rd 2 @ +450', unlockPrice: 0.4, sport: 'MMA', description: 'Striking stats breakdown.', pastPerfect: 19 },
+];
+
+export const mockPools: PokerPool[] = [
+  { id: 'pp1', title: 'High Stakes Omaha', seats: { occupied: 4, total: 6 }, buyIn: 20, participants: mockUsers.slice(0, 4), status: 'open' },
+  { id: 'pp2', title: 'Degen Express', seats: { occupied: 7, total: 8 }, buyIn: 5, participants: mockUsers.slice(2, 9), status: 'open' },
+  { id: 'pp3', title: 'Whale Room', seats: { occupied: 2, total: 4 }, buyIn: 100, participants: mockUsers.slice(5, 7), status: 'open' },
+];
+
+export const mockFeed: FeedItem[] = [
+  { type: 'duel', data: mockDuels[0] },
+  { type: 'prediction', data: mockPredictions[0] },
+  { type: 'duel', data: mockDuels[3] },
+  { type: 'duel', data: mockDuels[1] },
+  { type: 'pool', data: mockPools[0] },
+  { type: 'duel', data: mockDuels[4] },
+  { type: 'prediction', data: mockPredictions[1] },
+  { type: 'duel', data: mockDuels[5] },
+  { type: 'pool', data: mockPools[1] },
+  { type: 'duel', data: mockDuels[2] },
+  { type: 'duel', data: mockDuels[6] },
+  { type: 'prediction', data: mockPredictions[2] },
+];
+
 export const mockAchievements: Achievement[] = [
   { id: 'a1', name: 'First Blood', description: 'Win your first duel', icon: '⚔️', earned: true },
   { id: 'a2', name: 'Shark', description: '10 consecutive wins', icon: '🦈', earned: true },
@@ -36,3 +114,19 @@ export const mockAchievements: Achievement[] = [
 ];
 
 export const leaderboardUsers = [...mockUsers].sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+// My Bets - bets the current user is involved in
+export const myBetsFeed: FeedItem[] = [
+  { type: 'duel', data: mockDuels[0] }, // currentUser is challenger
+  { type: 'prediction', data: { ...mockPredictions[3], purchased: true } as any },
+  { type: 'pool', data: mockPools[0] }, // currentUser is participant
+];
+
+// Discover - trending/new items the user hasn't seen
+export const discoverFeed: FeedItem[] = [
+  { type: 'prediction', data: mockPredictions[3] },
+  { type: 'prediction', data: mockPredictions[4] },
+  { type: 'pool', data: mockPools[2] },
+  { type: 'duel', data: mockDuels[2] },
+  { type: 'pool', data: mockPools[1] },
+];

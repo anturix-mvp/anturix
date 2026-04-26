@@ -1,13 +1,10 @@
 {
   "buildCommand": "NODE_OPTIONS=--max-old-space-size=6144 bun run build",
   "outputDirectory": "dist/client",
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

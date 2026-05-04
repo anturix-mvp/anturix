@@ -6,10 +6,11 @@ import { createDuel } from "@/services/duelContract";
 import { toast } from "sonner";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { storeRecentDuel } from "@/lib/arena";
+import { currentUser, mockUsers } from "@/data/mockData";
 import {
   Dices,
   Info,
-  Eye,
+  Globe,
   Users as UsersIcon,
   Bitcoin,
   Trophy as TrophyIcon,
@@ -28,16 +29,23 @@ const durations = [
 ];
 
 const presetAmounts = [0.1, 0.5, 1, 5, 10];
+const inviteFriendNames = [
+  "WhaleWatch_X",
+  "HoopGod_77",
+  "SolanaShark",
+  "DegenKing_99",
+];
+const inviteFriends = mockUsers.filter(
+  (user) =>
+    user.id !== currentUser.id && inviteFriendNames.includes(user.username),
+);
 
 interface CreateBetModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function CreateBetModal({
-  open,
-  onClose,
-}: CreateBetModalProps) {
+export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
   const { authenticated, ready, solanaWallet, login } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -48,9 +56,16 @@ export function CreateBetModal({
   const [activeCategory, setActiveCategory] = useState<
     "general" | "casino" | "crypto" | "sports"
   >("general");
-  const [activeType, setActiveType] = useState<"1v1" | "expert" | "pool">(
-    "1v1",
+  const [activeType, setActiveType] = useState<
+    "private" | "prediction" | "pool"
+  >("private");
+  const [privateDuelMode, setPrivateDuelMode] = useState<"market" | "mutual">(
+    "market",
   );
+  const [inviteFriendsDirectly, setInviteFriendsDirectly] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
+  const [maxParticipants, setMaxParticipants] = useState(1);
   const [mode, setMode] = useState<"private" | "public">("private");
   const [position, setPosition] = useState<"up" | "down">("up");
   const [step, setStep] = useState(1);
@@ -63,6 +78,12 @@ export function CreateBetModal({
     setAmount("");
     setDuration("24h");
     setUseCoinToss(true);
+    setActiveType("private");
+    setPrivateDuelMode("market");
+    setInviteFriendsDirectly(false);
+    setInviteSearch("");
+    setInvitedFriends([]);
+    setMaxParticipants(1);
     setMode("private");
     setPosition("up");
     setStep(1);
@@ -156,11 +177,15 @@ export function CreateBetModal({
       return;
     }
 
-
     if (submitting) return;
 
     if (mode === "public") {
       toast.info("Public duels coming soon — contract integration in progress");
+      return;
+    }
+
+    if (privateDuelMode === "mutual") {
+      toast.info("Mutual Agreement mode coming soon!");
       return;
     }
 
@@ -175,17 +200,12 @@ export function CreateBetModal({
         "above",
       );
 
-
       localStorage.setItem(
         `userSide_${duelId}`,
-        position === "up" ? "OPTION_A" : "OPTION_B"
+        position === "up" ? "OPTION_A" : "OPTION_B",
       );
 
-      storeRecentDuel(
-        duelId,
-        title.trim() || "Untitled duel",
-        "pending",
-      );
+      storeRecentDuel(duelId, title.trim() || "Untitled duel", "pending");
 
       toast.success("ARENA DUEL CREATED! 🔥");
       handleClose();
@@ -211,8 +231,7 @@ export function CreateBetModal({
     }
   };
 
-  const isStep1Valid =
-    title.trim().length > 0 && description.trim().length > 0;
+  const isStep1Valid = activeType === "private" && title.trim().length > 0;
   const isValid = isStep1Valid && parseFloat(amount) > 0;
   const parsedStakeAmount = parseFloat(amount);
   const hasInsufficientBalance =
@@ -239,7 +258,7 @@ export function CreateBetModal({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="relative w-full sm:max-w-lg h-[100vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-2xl bg-card border-0 sm:border border-border shadow-2xl z-10"
+            className="relative w-full max-w-2xl mx-4 h-[100vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-none sm:rounded-2xl bg-card border-0 sm:border border-border shadow-2xl z-10"
           >
             {/* Handle bar (mobile) */}
             <div className="sm:hidden flex justify-center pt-3">
@@ -251,7 +270,7 @@ export function CreateBetModal({
               <div className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-primary" />
                 <h2 className="font-heading text-lg font-black tracking-widest text-foreground uppercase">
-                  CREATE 1V1 DUEL
+                  CREATE A PRIVATE DUEL
                 </h2>
               </div>
               <button
@@ -345,20 +364,20 @@ export function CreateBetModal({
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
                       Bet Type
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
                       {[
                         {
-                          id: "1v1",
-                          label: "1V1 DUEL",
+                          id: "private",
+                          label: "PRIVATE DUEL",
                           sub: "Challenge someone directly",
                           icon: Swords,
                           soon: false,
                         },
                         {
-                          id: "expert",
-                          label: "EXPERT LOCK",
-                          sub: "Monetize your prediction",
-                          icon: Eye,
+                          id: "prediction",
+                          label: "CREATE A PREDICTION MARKET",
+                          sub: "Open to all · Public oracle-resolved market",
+                          icon: Globe,
                           soon: true,
                         },
                         {
@@ -371,25 +390,36 @@ export function CreateBetModal({
                       ].map((t) => (
                         <button
                           key={t.id}
-                          onClick={() => !t.soon && setActiveType(t.id as any)}
-                          className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all text-center aspect-square gap-3 ${
+                          onClick={() => {
+                            if (t.id === "private") {
+                              setActiveType("private");
+                              return;
+                            }
+
+                            if (t.id === "prediction") {
+                              toast.info(
+                                "Prediction Markets are live in Public Arena! Check the Explore Markets page 🌍",
+                              );
+                            }
+                          }}
+                          className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all text-center gap-2 min-h-[120px] overflow-hidden w-full ${
                             activeType === t.id
                               ? "bg-primary/10 border-primary shadow-[0_0_20px_rgba(0,255,255,0.15)] ring-1 ring-primary/20"
                               : "bg-muted/10 border-border/50 hover:bg-muted/30"
-                          } ${t.soon ? "cursor-not-allowed grayscale opacity-50" : ""}`}
+                          } ${t.soon ? "grayscale opacity-80" : ""}`}
                         >
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeType === t.id ? "bg-primary text-black" : "bg-muted text-muted-foreground"}`}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${activeType === t.id ? "bg-primary text-black" : "bg-muted text-muted-foreground"}`}
                           >
-                            <t.icon className="w-5 h-5" />
+                            <t.icon className="w-4 h-4" />
                           </div>
                           <div>
                             <p
-                              className={`text-[10px] font-black tracking-tight leading-none ${activeType === t.id ? "text-primary" : "text-foreground"}`}
+                              className={`text-[11px] sm:text-xs font-black tracking-tight leading-none ${activeType === t.id ? "text-primary" : "text-foreground"}`}
                             >
                               {t.label}
                             </p>
-                            <p className="text-[7px] text-muted-foreground mt-1 leading-tight px-1">
+                            <p className="text-[8px] sm:text-[9px] text-muted-foreground mt-1 leading-tight px-1">
                               {t.sub}
                             </p>
                           </div>
@@ -402,6 +432,245 @@ export function CreateBetModal({
                       ))}
                     </div>
                   </div>
+
+                  {activeType === "private" && (
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                          Select Private Duel Mode
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPrivateDuelMode("mutual");
+                              toast.info(
+                                "Mutual Agreement mode coming soon — requires multi-sig oracle setup",
+                              );
+                            }}
+                            className={`relative flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                              privateDuelMode === "mutual"
+                                ? "border-primary bg-primary/10 shadow-[0_0_20px_rgba(0,255,255,0.12)]"
+                                : "border-border/50 bg-muted/10 hover:bg-muted/20"
+                            }`}
+                          >
+                            <div className="flex w-full items-center justify-between gap-3">
+                              <div className="text-sm font-black text-foreground">
+                                🤝 Mutual Agreement
+                              </div>
+                              <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[8px] font-black tracking-[0.2em] text-amber-300 uppercase">
+                                Coming Soon
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              Both parties agree on the outcome. If no agreement
+                              is reached, funds are refunded to both players
+                              automatically.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPrivateDuelMode("market")}
+                            className={`relative flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                              privateDuelMode === "market"
+                                ? "border-primary bg-primary/10 shadow-[0_0_20px_rgba(0,255,255,0.12)]"
+                                : "border-border/50 bg-muted/10 hover:bg-muted/20"
+                            }`}
+                          >
+                            <div className="flex w-full items-center justify-between gap-3">
+                              <div className="text-sm font-black text-foreground">
+                                📊 Market Prediction
+                              </div>
+                              <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black tracking-[0.2em] text-emerald-300 uppercase">
+                                Active ✓
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              Oracle-resolved prediction. Restricted to private
+                              invite links only. Winner decided by Pyth price
+                              feed.
+                            </p>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                          Privacy Settings
+                        </label>
+
+                        <div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-black text-foreground">
+                                🔗 Share via invite link
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Generate a unique URL to share with your
+                                opponent
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                              On
+                            </span>
+                          </div>
+
+                          <div className="border-t border-border/40 pt-4 space-y-3">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-sm font-black text-foreground">
+                                  👥 Invite friends directly
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Select from your friends list
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInviteFriendsDirectly((value) => !value)
+                                }
+                                className={`h-8 w-14 rounded-full border transition-all ${
+                                  inviteFriendsDirectly
+                                    ? "border-primary bg-primary/20"
+                                    : "border-border/60 bg-background/40"
+                                }`}
+                              >
+                                <span
+                                  className={`block h-6 w-6 rounded-full bg-foreground transition-all ${inviteFriendsDirectly ? "translate-x-7" : "translate-x-1"}`}
+                                />
+                              </button>
+                            </div>
+
+                            {inviteFriendsDirectly && (
+                              <div className="space-y-3">
+                                <input
+                                  type="text"
+                                  value={inviteSearch}
+                                  onChange={(e) =>
+                                    setInviteSearch(e.target.value)
+                                  }
+                                  placeholder="Search friends..."
+                                  className="w-full rounded-2xl border border-border/50 bg-background/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary/50 focus:outline-none"
+                                />
+                                <div className="space-y-2">
+                                  {inviteFriends
+                                    .filter((friend) =>
+                                      friend.username
+                                        .toLowerCase()
+                                        .includes(
+                                          inviteSearch.trim().toLowerCase(),
+                                        ),
+                                    )
+                                    .map((friend) => {
+                                      const isInvited = invitedFriends.includes(
+                                        friend.username,
+                                      );
+
+                                      return (
+                                        <div
+                                          key={friend.id}
+                                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/40 bg-background/30 px-4 py-3"
+                                        >
+                                          <div>
+                                            <p className="text-sm font-black text-foreground">
+                                              {friend.username}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground">
+                                              Ready to join the arena
+                                            </p>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (isInvited) return;
+                                              setInvitedFriends((value) => [
+                                                ...value,
+                                                friend.username,
+                                              ]);
+                                            }}
+                                            className={`rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
+                                              isInvited
+                                                ? "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                                                : "border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                                            }`}
+                                          >
+                                            {isInvited
+                                              ? "✓ Invited"
+                                              : "+ Invite"}
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  {inviteFriends.filter((friend) =>
+                                    friend.username
+                                      .toLowerCase()
+                                      .includes(
+                                        inviteSearch.trim().toLowerCase(),
+                                      ),
+                                  ).length === 0 && (
+                                    <p className="rounded-2xl border border-dashed border-border/50 px-4 py-4 text-center text-xs text-muted-foreground">
+                                      No matching friends found.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="border-t border-border/40 pt-4 space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-sm font-black text-foreground">
+                                  👤 Max participants
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Limit how many people can join this duel
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={10}
+                                  value={maxParticipants}
+                                  onChange={(e) => {
+                                    const nextValue = Number(e.target.value);
+                                    if (Number.isNaN(nextValue)) {
+                                      setMaxParticipants(1);
+                                      return;
+                                    }
+
+                                    setMaxParticipants(
+                                      Math.min(10, Math.max(1, nextValue)),
+                                    );
+                                  }}
+                                  className="w-24 rounded-2xl border border-border/50 bg-background/40 px-4 py-3 text-center text-lg font-black text-foreground focus:border-primary/50 focus:outline-none"
+                                />
+                                {maxParticipants > 1 && (
+                                  <span
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-[10px] font-black text-primary"
+                                    title="Multi-player duels coming in Phase 2. Only 1 opponent supported for now."
+                                  >
+                                    ℹ️
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-[10px] leading-relaxed text-muted-foreground">
+                              Set to 1 for strict 1v1. Up to 10 for group duels
+                              (Phase 2)
+                            </p>
+                            <p className="text-[10px] leading-relaxed text-muted-foreground">
+                              Note: currently only 1 participant supported
+                              on-chain.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-6">
                     <div>
@@ -618,8 +887,6 @@ export function CreateBetModal({
                       </div>
                     )}
 
-
-
                     {/* Summary Box */}
                     <div className="relative p-6 rounded-2xl bg-muted/10 border border-border/40 overflow-hidden">
                       {/* Corner accents */}
@@ -637,11 +904,10 @@ export function CreateBetModal({
                             Protocol Fee
                           </span>
                           <span className="text-[9px] font-black text-success uppercase tracking-widest">
-                             0.00% (Hackathon Promo)
+                            0.00% (Hackathon Promo)
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-
                           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                             Mode
                           </span>
@@ -656,9 +922,7 @@ export function CreateBetModal({
                             Heading
                           </span>
                           <span className="text-[9px] font-black text-foreground uppercase tracking-widest truncate max-w-[150px]">
-                            "
-                            {title || "Untitled"}
-                            "
+                            "{title || "Untitled"}"
                           </span>
                         </div>
                         <div className="flex justify-between items-center">

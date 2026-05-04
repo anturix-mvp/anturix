@@ -64,32 +64,44 @@ function LandingPage() {
             className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto font-medium leading-relaxed hero-fade-up"
             style={{ animationDelay: "240ms" }}
           >
-            The permissionless prediction market protocol on Solana.
-            Create any market, back your prediction with SOL, 
-            and let the oracle decide.
+            The permissionless prediction market protocol on Solana. Create any
+            market, back your prediction with SOL, and let the oracle decide.
           </p>
         </div>
 
         {/* Action Buttons */}
         <div
-          className="hero-fade-up relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-4 w-full sm:w-auto px-4 sm:px-0"
+          className="hero-fade-up relative z-10 flex flex-col sm:flex-row flex-wrap justify-center items-stretch sm:items-center gap-3 w-full max-w-3xl mx-auto px-4"
           style={{ animationDelay: "320ms" }}
         >
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             size="lg"
-            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow w-full sm:w-auto"
+            className="h-14 sm:h-20 px-6 sm:px-8 text-sm sm:text-lg font-black tracking-[0.04em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow w-full sm:flex-[1.35] sm:min-w-[220px] sm:max-w-none overflow-hidden justify-center"
           >
-            CREATE 1v1 DUEL 🔥
+            CREATE A PRIVATE DUEL
           </Button>
           <Button
             onClick={() => setIsCoinFlipOpen(true)}
             size="lg"
             variant="outline"
-            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)] w-full sm:w-auto"
+            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px]"
           >
             <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-primary mr-2" />
             FAST COIN FLIP
+          </Button>
+          <Button
+            onClick={() =>
+              toast.info(
+                "🔒 Expert Lock — Monetize your predictions. Coming in Phase 2!",
+              )
+            }
+            size="lg"
+            variant="outline"
+            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-amber-400/80 text-amber-300 hover:bg-amber-400/10 hover:border-amber-300 hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(251,191,36,0.16)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px]"
+          >
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 mr-2" />
+            🔒 EXPERT LOCK
           </Button>
         </div>
 
@@ -97,9 +109,11 @@ function LandingPage() {
           className="w-full overflow-hidden rounded-xl border border-border/60 bg-muted/20 hero-fade-up relative z-10"
           style={{ animationDelay: "380ms" }}
         >
-          <div className="ticker-track py-2.5 text-xs font-heading tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
-            ⚡ POWERED BY SOLANA · DEVNET · ZERO PLATFORM FEES · ⚡ POWERED BY
-            SOLANA · DEVNET · ZERO PLATFORM FEES ·
+          <div className="w-full overflow-hidden">
+            <div className="ticker-track py-2.5 text-xs font-heading tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
+              ⚡ POWERED BY SOLANA · DEVNET · ZERO PLATFORM FEES · ⚡ POWERED BY
+              SOLANA · DEVNET · ZERO PLATFORM FEES ·
+            </div>
           </div>
         </div>
 

@@ -19,7 +19,7 @@ export function PokerPoolCard({ pool, index = 0 }: { pool: PokerPool; index?: nu
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
+      transition={{ duration: 0.3 }}
       className="glass-card glass-card-hover card-scanline cyber-corners overflow-hidden transition-all duration-300 cursor-pointer"
       style={{ boxShadow: '0 0 20px oklch(0.7 0.22 340 / 0.15)' }}
     >

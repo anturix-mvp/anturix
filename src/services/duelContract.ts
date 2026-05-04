@@ -4,10 +4,10 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
-import { Buffer } from "buffer/";
-import idl from "@/idl/anturix.json";
+import { Buffer } from "buffer";
+import idl from "../idl/anturix.json";
 const DEVNET_RPC_URL =
-  import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
+  (import.meta as any).env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const sharedConnection = new Connection(DEVNET_RPC_URL, {
   commitment: "confirmed",
   disableRetryOnRateLimit: true,
@@ -17,16 +17,35 @@ const MIN_LOCKED_ODDS_BPS = 10_100;
 const MAX_LOCKED_ODDS_BPS = 100_000;
 const DEFAULT_START_ODDS_BPS = 20_000;
 
-/**
- * SOL/USD Pyth Devnet price feed ID (32 bytes).
- * Source: https://pyth.network/developers/price-feed-ids
- */
-const SOL_USD_FEED_ID = Array.from(
-  Buffer.from(
-    "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
-    "hex",
-  ),
+const SOL_USD_FEED_ID = Buffer.from(
+  "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+  "hex",
 );
+
+function derivePositionPda(
+  programId: PublicKey,
+  duelStatePubkey: PublicKey,
+  ownerPubkey: PublicKey,
+  side: "OPTION_A" | "OPTION_B"
+): PublicKey {
+  const sideByte = side === "OPTION_A" ? 0 : 1;
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("position"),
+      duelStatePubkey.toBuffer(),
+      ownerPubkey.toBuffer(),
+      Buffer.from([sideByte]),
+    ],
+    programId
+  )[0];
+}
+
+function deriveProfilePda(programId: PublicKey, ownerPubkey: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("profile"), ownerPubkey.toBuffer()],
+    programId
+  )[0];
+}
 
 export interface PositionView {
   pubkey: string;
@@ -210,17 +229,26 @@ export async function createDuel(
   // 2. Check if UserProfile exists, if not initialize it
   let profile: any;
   try {
-    profile = await program.account.userProfile.fetch(profilePda);
+    profile = await (program.account as any).userProfile.fetch(profilePda);
   } catch (e) {
     console.log("User profile not found, initializing...");
-    await program.methods
-      .initUserProfile()
-      .accounts({
-        owner: creator,
-        userProfile: profilePda,
-        systemProgram: SystemProgram.programId,
-      } as any)
-      .rpc();
+    try {
+      await program.methods
+        .initUserProfile()
+        .accounts({
+          owner: creator,
+          userProfile: profilePda,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .rpc();
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      if (msg.includes("already been processed")) {
+        const exists = await connection.getAccountInfo(profilePda);
+        if (exists) return;
+      }
+      throw err;
+    }
 
     // After init, fetch it to get correct state or assume default
     profile = { duelCount: new anchor.BN(0) };
@@ -254,16 +282,12 @@ export async function createDuel(
   const upperBound = new anchor.BN(0);
   const priceFeedIdB = Array.from(Buffer.alloc(32).fill(0));
 
-  // 6. Derive Position PDA using ["position", duel, creator, side_u8]
-  const side_u8 = side === "up" ? 0 : 1;
-  const [creatorPosition] = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("position"),
-      duelPda.toBuffer(),
-      creator.toBuffer(),
-      Buffer.from([side_u8]),
-    ],
+  const sideEnum = side === "up" ? { optionA: {} } : { optionB: {} };
+  const creatorPosition = derivePositionPda(
     program.programId,
+    duelPda,
+    creator,
+    side === "up" ? "OPTION_A" : "OPTION_B"
   );
 
   console.log("[createDuel] Position PDA:", creatorPosition.toString());
@@ -281,23 +305,30 @@ export async function createDuel(
       expiresAt,
       lowerBound,
       upperBound,
-      priceFeedIdB,
+      priceFeedIdB: Buffer.from(priceFeedIdB),
     },
     mode,
     side,
     conditionStr,
   );
 
-  // 7. Call create_duel via methods builder
+  // 7. Check if duel already exists (handles race conditions/retries)
+  const duelInfo = await connection.getAccountInfo(duelPda);
+  if (duelInfo) {
+    console.log("[createDuel] Duel account already exists, assuming success.");
+    return duelPda.toString();
+  }
+
+  // 8. Call create_duel via methods builder
   try {
     const tx = await program.methods
       .createDuel(
         resolvedEnums.mode,
-        resolvedEnums.side,
+        sideEnum,
         stakeAmount,
         resolvedEnums.condition,
         priceFeedId,
-        priceFeedIdB,
+        Buffer.from(priceFeedIdB),
         targetPrice,
         lowerBound,
         upperBound,
@@ -311,11 +342,22 @@ export async function createDuel(
         escrow: escrowPda,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts([])
       .rpc();
 
     console.log("Duel created. Transaction:", tx);
   } catch (error: any) {
     const message = String(error?.message || "");
+
+    // If transaction already processed, check if account exists now
+    if (message.includes("already been processed")) {
+      const exists = await connection.getAccountInfo(duelPda);
+      if (exists) {
+        console.log("[createDuel] Transaction reported as already processed, but duel exists. Continuing.");
+        return duelPda.toString();
+      }
+    }
+
     if (
       message.includes(
         "Attempt to debit an account but found no record of a prior credit",
@@ -353,7 +395,7 @@ export async function joinDuel(
 
   // 2. Ensure participant has a profile
   try {
-    await program.account.userProfile.fetch(profilePda);
+    await (program.account as any).userProfile.fetch(profilePda);
   } catch (e) {
     console.log("Participant profile not found, initializing...");
     await program.methods
@@ -373,33 +415,23 @@ export async function joinDuel(
   );
 
   // 4. Derive Position PDA
-  const side_u8 = side === "up" ? 0 : 1;
-  const [positionPda] = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("position"),
-      duelPda.toBuffer(),
-      participant.toBuffer(),
-      Buffer.from([side_u8]),
-    ],
+  const sideKey = side === "up" ? "OPTION_A" : "OPTION_B";
+  const positionPda = derivePositionPda(
     program.programId,
+    duelPda,
+    participant,
+    sideKey
   );
 
-  console.log("Joining duel...", duelAccountPubkey, side, amountInSOL);
-
-  const sideOptions = enumCandidates("side", side);
-  let anchorSide = sideOptions[0];
-  if (sideOptions.length > 1) {
-    try {
-      program.coder.instruction.encode("joinPool", {
-        side: sideOptions[0],
-        amount: new anchor.BN(1),
-      });
-    } catch {
-      anchorSide = sideOptions[1];
-    }
-  }
-
+  const anchorSide = side === "up" ? { optionA: {} } : { optionB: {} };
   const amountLamports = new anchor.BN(Math.floor(amountInSOL * 1_000_000_000));
+
+  // 5. Check if position already exists (handles retries)
+  const positionInfo = await connection.getAccountInfo(positionPda);
+  if (positionInfo) {
+    console.log("[joinDuel] Position account already exists, assuming success.");
+    return;
+  }
 
   try {
     const tx = await program.methods
@@ -416,6 +448,14 @@ export async function joinDuel(
 
     console.log("Duel joined. Transaction:", tx);
   } catch (error: any) {
+    const message = String(error?.message || "");
+    if (message.includes("already been processed")) {
+      const exists = await connection.getAccountInfo(positionPda);
+      if (exists) {
+        console.log("[joinDuel] Transaction reported as already processed, but position exists. Continuing.");
+        return;
+      }
+    }
     console.error("Join failure:", error);
     throw error;
   }
@@ -428,13 +468,12 @@ export async function joinDuel(
 export async function claimShare(
   wallet: any,
   duelAccountPubkey: string,
-  positionPubkey: string,
+  _unusedPositionPubkey: string,
   side: "up" | "down",
 ): Promise<void> {
   const program = getProgram(wallet);
   const owner = program.provider.publicKey!;
   const duelPda = new PublicKey(duelAccountPubkey);
-  const positionPda = new PublicKey(positionPubkey);
 
   const [profilePda] = PublicKey.findProgramAddressSync(
     [Buffer.from("profile"), owner.toBuffer()],
@@ -448,17 +487,33 @@ export async function claimShare(
 
   const anchorSide = side === "up" ? { optionA: {} } : { optionB: {} };
 
-  await program.methods
-    .claimShare(anchorSide)
-    .accounts({
+    const positionPda = derivePositionPda(
+      program.programId,
+      duelPda,
       owner,
-      ownerProfile: profilePda,
-      duelState: duelPda,
-      position: positionPda,
-      escrow: escrowPda,
-      systemProgram: SystemProgram.programId,
-    } as any)
-    .rpc();
+      side === "up" ? "OPTION_A" : "OPTION_B"
+    );
+
+    try {
+      await program.methods
+        .claimShare(anchorSide)
+        .accounts({
+          owner,
+          ownerProfile: profilePda,
+          duelState: duelPda,
+          position: positionPda,
+          escrow: escrowPda,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .rpc();
+    } catch (error: any) {
+      const message = String(error?.message || "");
+      if (message.includes("already been processed")) {
+        console.log("[claimShare] Transaction reported as already processed. Continuing.");
+        return;
+      }
+      throw error;
+    }
 }
 
 /**
@@ -468,13 +523,12 @@ export async function claimShare(
 export async function claimRefund(
   wallet: any,
   duelAccountPubkey: string,
-  positionPubkey: string,
+  _unusedPositionPubkey: string,
   side: "up" | "down",
 ): Promise<void> {
   const program = getProgram(wallet);
   const owner = program.provider.publicKey!;
   const duelPda = new PublicKey(duelAccountPubkey);
-  const positionPda = new PublicKey(positionPubkey);
 
   const [escrowPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("escrow"), duelPda.toBuffer()],
@@ -483,16 +537,32 @@ export async function claimRefund(
 
   const anchorSide = side === "up" ? { optionA: {} } : { optionB: {} };
 
-  await program.methods
-    .claimRefund(anchorSide)
-    .accounts({
+    const positionPda = derivePositionPda(
+      program.programId,
+      duelPda,
       owner,
-      duelState: duelPda,
-      position: positionPda,
-      escrow: escrowPda,
-      systemProgram: SystemProgram.programId,
-    } as any)
-    .rpc();
+      side === "up" ? "OPTION_A" : "OPTION_B"
+    );
+
+    try {
+      await program.methods
+        .claimRefund(anchorSide)
+        .accounts({
+          owner,
+          duelState: duelPda,
+          position: positionPda,
+          escrow: escrowPda,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .rpc();
+    } catch (error: any) {
+      const message = String(error?.message || "");
+      if (message.includes("already been processed")) {
+        console.log("[claimRefund] Transaction reported as already processed. Continuing.");
+        return;
+      }
+      throw error;
+    }
 }
 
 export async function getEntryQuote(
@@ -502,7 +572,7 @@ export async function getEntryQuote(
   amountInSOL: number,
 ) {
   const program = getProgram(wallet);
-  const duel = await program.account.duelState.fetch(
+  const duel = await (program.account as any).duelState.fetch(
     new PublicKey(duelAccountPubkey),
   );
 
@@ -563,7 +633,7 @@ export async function getMyPositions(
       : new PublicKey(wallet.address);
 
   // IDL struct name is "Position" (not "PositionTicket")
-  const accountName = program.account.position
+  const accountName = (program.account as any).position
     ? "position"
     : "positionTicket";
 
@@ -608,7 +678,7 @@ export async function getDuelAccount(wallet: any, duelAccountPubkey: string) {
   try {
     const program = getProgram(wallet);
     const duelPda = new PublicKey(duelAccountPubkey);
-    return await program.account.duelState.fetch(duelPda);
+    return await (program.account as any).duelState.fetch(duelPda);
   } catch (e) {
     console.error("Error fetching duel account:", e);
     return null;

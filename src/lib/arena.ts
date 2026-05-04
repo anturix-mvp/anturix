@@ -57,12 +57,15 @@ export function storeRecentDuel(
   );
 }
 
-export function loadRecentDuel() {
+export function loadRecentDuel(duelId?: string) {
   if (typeof window === "undefined") return null;
 
   try {
     const raw = window.localStorage.getItem(RECENT_DUEL_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as RecentDuel) : null;
+    if (!raw) return null;
+    const data = JSON.parse(raw) as RecentDuel;
+    if (duelId && data.duelId !== duelId) return null;
+    return data;
   } catch {
     return null;
   }

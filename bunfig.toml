@@ -1,2 +1,2 @@
-[install]
-saveTextLockfile = false
+[run]
+bun-flags = ["--max-old-space-size=4096"]

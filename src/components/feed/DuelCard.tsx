@@ -100,7 +100,7 @@ export function DuelCard({ duel, index = 0 }: { duel: Duel; index?: number }) {
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay: index * 0.08, type: 'spring', stiffness: 200, damping: 25 }}
+      transition={{ duration: 0.3, type: 'spring', stiffness: 200, damping: 25 }}
       className="glass-card glass-card-hover border-gradient-cyan-magenta card-scanline cyber-corners overflow-hidden transition-all duration-300 cursor-pointer"
     >
       <div className="cyber-corners-bottom">

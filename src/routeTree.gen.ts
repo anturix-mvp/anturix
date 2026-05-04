@@ -17,6 +17,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DuelDuelIdRouteImport } from './routes/duel.$duelId'
 
@@ -60,6 +61,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArenaRoute = ArenaRouteImport.update({
+  id: '/arena',
+  path: '/arena',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -73,6 +79,7 @@ const DuelDuelIdRoute = DuelDuelIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/arena': typeof ArenaRoute
   '/calendar': typeof CalendarRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/arena': typeof ArenaRoute
   '/calendar': typeof CalendarRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/arena': typeof ArenaRoute
   '/calendar': typeof CalendarRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/arena'
     | '/calendar'
     | '/feed'
     | '/friends'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/arena'
     | '/calendar'
     | '/feed'
     | '/friends'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/arena'
     | '/calendar'
     | '/feed'
     | '/friends'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ArenaRoute: typeof ArenaRoute
   CalendarRoute: typeof CalendarRoute
   FeedRoute: typeof FeedRoute
   FriendsRoute: typeof FriendsRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arena': {
+      id: '/arena'
+      path: '/arena'
+      fullPath: '/arena'
+      preLoaderRoute: typeof ArenaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ArenaRoute: ArenaRoute,
   CalendarRoute: CalendarRoute,
   FeedRoute: FeedRoute,
   FriendsRoute: FriendsRoute,

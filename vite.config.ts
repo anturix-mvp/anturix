@@ -41,5 +41,12 @@ export default defineConfig({
         "@solana-program/token",
       ],
     },
+    build: {
+      // Increase chunk size warning limit
+      chunkSizeWarningLimit: 2000,
+      minify: "esbuild", // faster than terser, less memory
+      sourcemap: false, // disable sourcemaps for prod build to save memory
+      target: "esnext", // modern target, less transformation needed
+    },
   },
 });
